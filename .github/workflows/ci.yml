@@ -20,9 +20,9 @@ jobs:
         with:
           python-version: "3.13"
       - run: uv sync --locked --extra dev
-      - run: uv run ruff check .
-      - run: uv run ruff format --check .
-      - run: uv run mypy deanos_engine tests
+      - run: uv run ruff check . ../scripts
+      - run: uv run ruff format --check . ../scripts
+      - run: uv run mypy deanos_engine tests ../scripts/refresh_data.py
       - run: uv run pytest -q
 
   web:

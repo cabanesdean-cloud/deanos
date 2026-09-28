@@ -1,0 +1,14 @@
+# Local-only files that must never be uploaded with a deployment.
+.git
+**/.venv
+**/node_modules
+**/.next
+engine/.data
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+CLAUDE.md
+**/CLAUDE.md
+.claude
+scripts/hooks

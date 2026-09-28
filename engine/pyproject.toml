@@ -18,6 +18,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Only for scripts/refresh_data.py (nightly job); not part of the deployed function.
+data = [
+    "yfinance>=0.2.60",
+]
 dev = [
     "pytest>=8",
     "httpx>=0.28",

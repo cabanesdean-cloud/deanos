@@ -2,42 +2,44 @@
 
 Vercel Services passes the original request path through to the service, so
 routes are mounted under the full public prefix.
+
+Every analysis endpoint is a GET whose portfolio lives in the query string
+(``p=SPY:40,AGG:60``). Nothing is stored. Responses depend only on the query
+and the nightly data snapshot, so the CDN can cache them.
 """
+
+from __future__ import annotations
 
 import platform
 import time
+from collections.abc import Callable
 from importlib.metadata import version
-from typing import Any
+from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, FastAPI
+import numpy as np
+import pandas as pd
+from fastapi import APIRouter, FastAPI, Query, Request, Response
+from fastapi.responses import JSONResponse
 
 from deanos_engine import __version__
+from deanos_engine._json import clean
+from deanos_engine.data import DataUnavailableError, Snapshot, get_snapshot
+from deanos_engine.demos import DEMOS, spec
+from deanos_engine.models import compare, factors, garch, metrics, montecarlo, regime, stress, var
+from deanos_engine.portfolio import (
+    TRADING_DAYS,
+    PortfolioData,
+    PortfolioError,
+    align,
+    parse_portfolio,
+    prepare,
+)
 
 API_PREFIX = "/deanos/api"
-
-# Every heavy dependency the models need. Importing them here at module load
-# means /health reports the real cold-start cost of the full engine.
-_t0 = time.perf_counter()
-import arch  # noqa: E402,F401
-import hmmlearn  # noqa: E402,F401
-import numpy as np  # noqa: E402
-import pandas  # noqa: E402,F401
-import scipy  # noqa: E402,F401
-import sklearn  # noqa: E402,F401
-import statsmodels  # noqa: E402,F401
-
-IMPORT_SECONDS = round(time.perf_counter() - _t0, 3)
-
-_DEPENDENCIES = [
-    "fastapi",
-    "numpy",
-    "pandas",
-    "scipy",
-    "scikit-learn",
-    "statsmodels",
-    "hmmlearn",
-    "arch",
-]
+CACHE_HEADER = "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400"
+BENCHMARKS = ("SPY", "QQQ", "AGG")
+# paths x horizon bound: each simulated day is ~8 bytes in several working arrays.
+MAX_SIM_CELLS = 5_000_000
 
 app = FastAPI(
     title="DeanOS engine",
@@ -48,57 +50,280 @@ app = FastAPI(
 )
 router = APIRouter(prefix=API_PREFIX)
 
+PortfolioQuery = Annotated[
+    str,
+    Query(
+        alias="p",
+        max_length=400,
+        description="Holdings as TICKER:WEIGHT pairs, e.g. SPY:40,AGG:60. Weights are relative.",
+    ),
+]
+Years = Annotated[int, Query(ge=2, le=26)]
 
-@router.get("/health")
-def health() -> dict[str, Any]:
+
+@app.exception_handler(PortfolioError)
+async def _portfolio_error(_: Request, exc: PortfolioError) -> JSONResponse:
+    return JSONResponse(status_code=400, content={"error": str(exc)})
+
+
+@app.exception_handler(DataUnavailableError)
+async def _data_error(_: Request, exc: DataUnavailableError) -> JSONResponse:
+    return JSONResponse(
+        status_code=503, content={"error": "Market data is temporarily unavailable."}
+    )
+
+
+def _respond(response: Response, body: dict[str, Any], snap: Snapshot) -> dict[str, Any]:
+    response.headers["Cache-Control"] = CACHE_HEADER
+    body["as_of"] = snap.as_of
+    body["engine_version"] = __version__
+    out: dict[str, Any] = clean(body)
+    return out
+
+
+def _load(p: str, years: int) -> tuple[Snapshot, PortfolioData]:
+    snap = get_snapshot()
+    data = prepare(snap, parse_portfolio(p), lookback_days=years * TRADING_DAYS)
+    return snap, data
+
+
+def _returns(snap: Snapshot, ticker: str) -> pd.Series:
+    return snap.prices[ticker].dropna().pct_change().dropna()
+
+
+def _portfolio_block(snap: Snapshot, data: PortfolioData) -> dict[str, Any]:
+    info = snap.universe
     return {
-        "status": "ok",
-        "engine_version": __version__,
-        "python": platform.python_version(),
-        "machine": platform.machine(),
-        "import_seconds": IMPORT_SECONDS,
-        "dependencies": {name: version(name) for name in _DEPENDENCIES},
+        "holdings": [
+            {"ticker": t, "weight": w, **info.get(t, {})}
+            for t, w in zip(data.tickers, data.weights, strict=True)
+        ],
+        "data_quality": data.data_quality,
     }
 
 
-@router.get("/spike")
-def spike() -> dict[str, Any]:
-    """Phase 5 deployment spike: time one small fit from each heavy library.
-
-    Synthetic data only. Removed once the real models land.
-    """
-    from arch import arch_model
-    from hmmlearn.hmm import GaussianHMM
-    from sklearn.mixture import GaussianMixture
-    from statsmodels.regression.linear_model import OLS
-
-    rng = np.random.default_rng(0)
-    returns = rng.standard_t(df=5, size=2_000) * 0.01
-    timings: dict[str, float] = {}
-
+def _timed(fn: Callable[[], dict[str, Any]]) -> dict[str, Any]:
     t = time.perf_counter()
-    arch_model(returns * 100, vol="GARCH", p=1, q=1).fit(disp="off")
-    timings["garch_fit"] = time.perf_counter() - t
+    body = fn()
+    body["compute_seconds"] = time.perf_counter() - t
+    return body
 
-    t = time.perf_counter()
-    GaussianHMM(n_components=2, n_iter=100, random_state=0).fit(returns.reshape(-1, 1))
-    timings["hmm_fit"] = time.perf_counter() - t
 
-    t = time.perf_counter()
-    GaussianMixture(n_components=2, random_state=0).fit(returns.reshape(-1, 1))
-    timings["gmm_fit"] = time.perf_counter() - t
+# ─── Metadata ───────────────────────────────────────────────────────────────────
 
-    t = time.perf_counter()
-    x = rng.normal(size=(2_000, 6))
-    OLS(returns, np.column_stack([np.ones(2_000), x])).fit(cov_type="HAC", cov_kwds={"maxlags": 5})
-    timings["ols_hac_fit"] = time.perf_counter() - t
 
-    t = time.perf_counter()
-    idx = rng.integers(0, 2_000, size=(5_000, 252))
-    np.cumprod(1 + returns[idx], axis=1)
-    timings["bootstrap_5000x252"] = time.perf_counter() - t
+@router.get("/health")
+def health() -> dict[str, Any]:
+    deps = [
+        "fastapi",
+        "numpy",
+        "pandas",
+        "scipy",
+        "scikit-learn",
+        "statsmodels",
+        "hmmlearn",
+        "arch",
+    ]
+    body: dict[str, Any] = {
+        "status": "ok",
+        "engine_version": __version__,
+        "python": platform.python_version(),
+        "dependencies": {name: version(name) for name in deps},
+    }
+    try:
+        snap = get_snapshot()
+        body["data"] = {"as_of": snap.as_of, "tickers": snap.prices.shape[1]}
+    except DataUnavailableError:
+        body["data"] = None
+    return body
 
-    return {"seconds": {k: round(v, 4) for k, v in timings.items()}}
+
+@router.get("/universe")
+def universe(response: Response) -> dict[str, Any]:
+    snap = get_snapshot()
+    firsts = snap.prices.apply(lambda s: s.first_valid_index())
+    rows = [
+        {"ticker": t, **snap.universe.get(t, {}), "first_date": str(firsts[t].date())}
+        for t in snap.prices.columns
+        if firsts[t] is not None and not pd.isna(firsts[t])
+    ]
+    return _respond(
+        response,
+        {"tickers": rows, "factor_data_end": str(snap.factors.index[-1].date())},
+        snap,
+    )
+
+
+@router.get("/demos")
+def demos(response: Response) -> dict[str, Any]:
+    snap = get_snapshot()
+    return _respond(response, {"demos": [{**d, "p": spec(d)} for d in DEMOS]}, snap)
+
+
+# ─── Sections ───────────────────────────────────────────────────────────────────
+
+
+@router.get("/overview")
+def overview(response: Response, p: PortfolioQuery, years: Years = 10) -> dict[str, Any]:
+    snap, data = _load(p, years)
+
+    def run() -> dict[str, Any]:
+        bench = (
+            pd.DataFrame({b: _returns(snap, b) for b in BENCHMARKS if b in snap.prices})
+            .reindex(data.portfolio_returns.index)
+            .fillna(0.0)
+        )
+        summary = metrics.summary(
+            data.portfolio_returns, data.rf, data.weights, data.asset_returns, bench
+        )
+        r = data.portfolio_returns
+        idx = list(range(0, len(r), 5)) + ([len(r) - 1] if (len(r) - 1) % 5 else [])
+        growth = np.cumprod(1 + r.to_numpy())
+        spy_growth = np.cumprod(1 + bench["SPY"].to_numpy()) if "SPY" in bench else None
+        return {
+            **_portfolio_block(snap, data),
+            "metrics": summary,
+            "growth": {
+                "dates": [str(r.index[i].date()) for i in idx],
+                "portfolio": growth[idx],
+                "spy": spy_growth[idx] if spy_growth is not None else None,
+                "drawdown": metrics.drawdown_series(r.to_numpy())[idx],
+            },
+            "correlation_matrix": {
+                "tickers": data.tickers,
+                "values": np.corrcoef(data.asset_returns.to_numpy(), rowvar=False)
+                if len(data.tickers) > 1
+                else [[1.0]],
+            },
+        }
+
+    return _respond(response, _timed(run), snap)
+
+
+@router.get("/risk")
+def risk(response: Response, p: PortfolioQuery, years: Years = 10) -> dict[str, Any]:
+    snap, data = _load(p, years)
+    body = _timed(
+        lambda: {
+            **_portfolio_block(snap, data),
+            **var.analyze(data.portfolio_returns, data.asset_returns, data.weights),
+        }
+    )
+    return _respond(response, body, snap)
+
+
+@router.get("/volatility")
+def volatility(response: Response, p: PortfolioQuery, years: Years = 10) -> dict[str, Any]:
+    snap, data = _load(p, years)
+    body = _timed(
+        lambda: {
+            **_portfolio_block(snap, data),
+            **garch.analyze(data.portfolio_returns, data.asset_returns, data.weights),
+        }
+    )
+    return _respond(response, body, snap)
+
+
+@router.get("/simulation")
+def simulation(
+    response: Response,
+    p: PortfolioQuery,
+    years: Years = 15,
+    horizon: Annotated[int, Query(ge=21, le=1260)] = 252,
+    paths: Annotated[int, Query(ge=500, le=10_000)] = 5000,
+    block: Annotated[int, Query(ge=1, le=126)] = 21,
+    mean: Literal["historical", "zero"] = "historical",
+) -> dict[str, Any]:
+    if paths * horizon > MAX_SIM_CELLS:
+        raise PortfolioError(
+            f"paths x horizon must be at most {MAX_SIM_CELLS:,}; reduce one of them."
+        )
+    snap, data = _load(p, years)
+    body = _timed(
+        lambda: {
+            **_portfolio_block(snap, data),
+            **montecarlo.simulate(
+                data.portfolio_returns, horizon=horizon, n_paths=paths, block=block, mean_mode=mean
+            ),
+        }
+    )
+    return _respond(response, body, snap)
+
+
+@router.get("/regimes")
+def regimes(response: Response, p: PortfolioQuery, years: Years = 26) -> dict[str, Any]:
+    snap, data = _load(p, years)
+    body = _timed(
+        lambda: {
+            **_portfolio_block(snap, data),
+            **regime.analyze(
+                _returns(snap, "SPY"),
+                data.portfolio_returns,
+                precomputed=snap.meta.get("precomputed", {}).get("regimes"),
+            ),
+        }
+    )
+    return _respond(response, body, snap)
+
+
+@router.get("/factors")
+def factor_exposures(response: Response, p: PortfolioQuery, years: Years = 5) -> dict[str, Any]:
+    snap, data = _load(p, years)
+    try:
+        body = _timed(
+            lambda: {
+                **_portfolio_block(snap, data),
+                **factors.analyze(data.portfolio_returns, snap.factors),
+            }
+        )
+    except ValueError as exc:
+        raise PortfolioError(str(exc)) from exc
+    return _respond(response, body, snap)
+
+
+@router.get("/stress")
+def stress_tests(
+    response: Response,
+    p: PortfolioQuery,
+    years: Years = 5,
+    market: Annotated[float, Query(ge=-0.6, le=0.3)] = -0.20,
+    rates_bps: Annotated[float, Query(ge=-300, le=300)] = 100.0,
+) -> dict[str, Any]:
+    snap, data = _load(p, years)
+    body = _timed(
+        lambda: {
+            **_portfolio_block(snap, data),
+            **stress.analyze(
+                snap.prices[data.tickers],
+                snap.prices["SPY"],
+                snap.prices["IEF"],
+                data.weights,
+                data.asset_returns,
+                market_move=market,
+                rate_change_bps=rates_bps,
+            ),
+        }
+    )
+    return _respond(response, body, snap)
+
+
+@router.get("/compare")
+def compare_portfolios(
+    response: Response,
+    a: Annotated[str, Query(max_length=400)],
+    b: Annotated[str, Query(max_length=400)],
+    years: Years = 10,
+) -> dict[str, Any]:
+    snap = get_snapshot()
+    da = prepare(snap, parse_portfolio(a), lookback_days=years * TRADING_DAYS)
+    db = prepare(snap, parse_portfolio(b), lookback_days=years * TRADING_DAYS)
+    da, db = align(da, db)
+    body = _timed(
+        lambda: compare.analyze(
+            da, db, snap.prices[da.tickers], snap.prices[db.tickers], snap.prices["SPY"]
+        )
+    )
+    return _respond(response, body, snap)
 
 
 app.include_router(router)
