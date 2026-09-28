@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { METHODS } from "@/content/methodology";
+import { OG_IMAGE } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Methodology",
   description:
     "How each DeanOS model works: what it does, why it is used, its assumptions, how to read it, and where it fails.",
-  alternates: { canonical: "/deanos/methodology" },
+  alternates: { canonical: "/methodology" },
+  openGraph: { title: "Methodology · DeanOS", description: "How each DeanOS model works, what it assumes, and where it fails.", url: "/methodology", images: [OG_IMAGE] },
 };
 
 export default function MethodologyIndex() {

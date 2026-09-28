@@ -11,9 +11,42 @@
       "entrypoint": "deanos_engine.api:app"
     }
   },
-  "redirects": [{ "source": "/", "destination": "/deanos", "permanent": false }],
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/deanos",
+      "permanent": false
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "(?<host>.*)\\.vercel\\.app"
+        }
+      ],
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
+        }
+      ]
+    }
+  ],
   "rewrites": [
-    { "source": "/deanos/api/(.*)", "destination": { "service": "engine" } },
-    { "source": "/(.*)", "destination": { "service": "web" } }
+    {
+      "source": "/deanos/api/(.*)",
+      "destination": {
+        "service": "engine"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "web"
+      }
+    }
   ]
 }

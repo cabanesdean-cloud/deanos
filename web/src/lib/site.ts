@@ -34,3 +34,14 @@ export const SECTIONS = [
 ] as const;
 
 export type SectionId = (typeof SECTIONS)[number]["id"];
+
+/** Canonical site root, with no trailing slash. */
+export const SITE_URL = `${SITE.origin}${SITE.basePath}`;
+
+/** Default share image, repeated on pages that set their own openGraph (which replaces the inherited one). */
+export const OG_IMAGE = {
+  url: "/opengraph-image",
+  width: 1200,
+  height: 630,
+  alt: "DeanOS: Portfolio Risk & Modeling Engine",
+};

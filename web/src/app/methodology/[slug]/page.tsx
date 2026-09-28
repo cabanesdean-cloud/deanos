@@ -4,7 +4,9 @@ import { notFound } from "next/navigation";
 
 import { Validation } from "@/components/methodology/Validation";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { JsonLd } from "@/components/site/JsonLd";
 import { getMethod, METHODS } from "@/content/methodology";
+import { SITE } from "@/lib/site";
 
 export function generateStaticParams() {
   return METHODS.map((m) => ({ slug: m.slug }));
@@ -19,7 +21,8 @@ export async function generateMetadata(props: PageProps<"/methodology/[slug]">):
   return {
     title: m.title,
     description: m.summary,
-    alternates: { canonical: `/deanos/methodology/${m.slug}` },
+    alternates: { canonical: `/methodology/${m.slug}` },
+    openGraph: { type: "article", title: `${m.title} · DeanOS`, description: m.summary, url: `/methodology/${m.slug}` },
   };
 }
 
@@ -38,8 +41,22 @@ export default async function MethodPage(props: PageProps<"/methodology/[slug]">
   const m = getMethod(slug);
   if (!m) notFound();
 
+  const url = `${SITE.origin}${SITE.basePath}/methodology/${m.slug}`;
   return (
     <div className="container">
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "TechArticle",
+          headline: m.title,
+          description: m.summary,
+          url,
+          author: { "@type": "Person", name: SITE.owner },
+          isPartOf: { "@type": "WebApplication", name: SITE.name, url: `${SITE.origin}${SITE.basePath}` },
+          citation: m.references,
+          inLanguage: "en",
+        }}
+      />
       <div className="method-layout" style={{ paddingTop: 48 }}>
         <nav className="method-nav" aria-label="Models">
           <Link href="/methodology" className="small">

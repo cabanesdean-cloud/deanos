@@ -45,6 +45,8 @@ type Props = {
   yTicks?: number;
   /** Fixed left margin, to align stacked charts that share an x axis. */
   marginLeft?: number;
+  /** Fixed right margin, to align stacked charts that share an x axis. */
+  marginRight?: number;
 };
 
 export function LineChart({
@@ -65,6 +67,7 @@ export function LineChart({
   xTickValues: xTickOverride,
   yTicks = 5,
   marginLeft,
+  marginRight,
 }: Props) {
   const [ref, width] = useWidth<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
@@ -97,7 +100,7 @@ export function LineChart({
     : 0;
   const margin = {
     top: 8,
-    right: Math.min(hasEnd ? endLabelWidth : 8, Math.max(8, width * 0.35)),
+    right: Math.min(marginRight ?? (hasEnd ? endLabelWidth : 8), Math.max(8, width * 0.35)),
     bottom: 24,
     left: marginLeft ?? Math.max(...ticks.map((t) => textWidth(yFormat(t)))) + 10,
   };

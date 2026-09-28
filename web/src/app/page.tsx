@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { HeroFan } from "@/components/landing/HeroFan";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
-  alternates: { canonical: "/deanos" },
+  alternates: { canonical: SITE_URL },
 };
 
 export default function Home() {

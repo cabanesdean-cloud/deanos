@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { SITE } from "@/lib/site";
+import { OG_IMAGE, SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "About",
   description: "Why and how Dean Cabanes built DeanOS, a portfolio risk and modeling engine, and what it is not.",
-  alternates: { canonical: "/deanos/about" },
+  alternates: { canonical: "/about" },
+  openGraph: { title: "About DeanOS", description: "Why and how Dean Cabanes built DeanOS, and what it is not.", url: "/about", images: [OG_IMAGE] },
 };
 
 export default function About() {

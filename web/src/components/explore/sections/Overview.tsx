@@ -62,6 +62,8 @@ export function OverviewSection({ spec }: SectionProps) {
                 ]}
                 yFormat={(v) => `$${num(v, v < 10 ? 2 : 1)}`}
                 refLines={[{ value: 1 }]}
+                marginLeft={52}
+                marginRight={112}
                 ariaLabel={`Growth of one dollar from ${date(d.data_quality.start)}: the portfolio ends at $${num(d.growth.portfolio.at(-1), 2)}.`}
               />
               <LineChart
@@ -71,6 +73,8 @@ export function OverviewSection({ spec }: SectionProps) {
                 yFormat={(v) => pct(v, 0)}
                 includeZero
                 height={140}
+                marginLeft={52}
+                marginRight={112}
                 ariaLabel={`Drawdown from previous peak; deepest ${pct(dd.depth)}.`}
               />
             </Block>

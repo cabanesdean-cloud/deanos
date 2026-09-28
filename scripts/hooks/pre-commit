@@ -11,9 +11,10 @@ else
 fi
 
 # Optional private denylist of extended-regex patterns, kept outside the repo.
+# Text files only (-I): binary files such as screenshots are reviewed by eye.
 denylist="${DEANOS_DENYLIST:-$HOME/Projects/deanos-private/denylist.txt}"
 if [[ -f "$denylist" ]]; then
-  if git diff --cached --name-only --diff-filter=ACMR -z | xargs -0 grep -EnHf "$denylist" --; then
+  if git diff --cached --name-only --diff-filter=ACMR -z | xargs -0 grep -IEnHf "$denylist" --; then
     echo "pre-commit: staged files match the private denylist (see above)" >&2
     exit 1
   fi
