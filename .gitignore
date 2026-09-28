@@ -30,3 +30,4 @@ engine/.data/
 .claude/settings.local.json
 CLAUDE.md
 .vercel
+.claude/launch.json

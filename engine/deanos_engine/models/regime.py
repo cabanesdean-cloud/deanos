@@ -296,6 +296,8 @@ def market_regimes(spy_returns: pd.Series, n_starts: int = DEFAULT_STARTS) -> di
             "dates": [str(feat.index[i].date()) for i in hist_idx],
             "step_days": step,
             **{lab: probs[hist_idx, j] for j, lab in enumerate(LABELS)},
+            # S&P 500 growth of $1 over the same dates, for context in the chart.
+            "spy_growth": np.cumprod(1.0 + r)[hist_idx] / (1.0 + r[0]),
         },
         "stability": stability(fits),
         "sample": {"start": str(feat.index[0].date()), "end": str(feat.index[-1].date())},

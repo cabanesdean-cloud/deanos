@@ -79,6 +79,7 @@ def test_market_regimes_on_synthetic_spy() -> None:
     assert storm_days.isin(["crisis", "volatile"]).mean() > 0.95
     assert (storm_days == "crisis").mean() > 0.6
     assert (labels.iloc[:1400] == "crisis").mean() < 0.05
+    assert len(out["history"]["spy_growth"]) == len(out["history"]["dates"])
     probs = out["current"]["probabilities"]
     assert sum(probs.values()) == pytest.approx(1.0)
     assert max(probs.values()) <= 0.95 + 1e-12

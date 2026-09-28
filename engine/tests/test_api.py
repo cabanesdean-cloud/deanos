@@ -26,7 +26,10 @@ def test_routes_live_under_public_prefix() -> None:
     [
         ("overview", {"metrics", "growth", "holdings", "data_quality"}),
         ("risk", {"estimates", "backtest", "contributions_95"}),
-        ("volatility", {"forecasts", "term_structure", "diagnostics", "holdings"}),
+        (
+            "volatility",
+            {"forecasts", "term_structure", "diagnostics", "holding_volatility", "holdings"},
+        ),
         ("simulation", {"fan", "final", "probabilities", "assumptions"}),
         ("regimes", {"current", "history", "stability", "portfolio_by_regime"}),
         ("factors", {"loadings", "alpha", "r_squared", "window"}),

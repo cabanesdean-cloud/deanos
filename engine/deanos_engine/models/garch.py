@@ -256,5 +256,5 @@ def analyze(
             "realized_21d": hist["realized_21d"].to_numpy(),
             "model": hist["model"].to_numpy(),
         },
-        "holdings": holdings,
+        "holding_volatility": holdings,
     }
