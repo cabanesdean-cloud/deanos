@@ -1,0 +1,41 @@
+/* Minimal base until the Phase 7 design system lands. */
+:root {
+  --bg: #fbfbfa;
+  --fg: #1a1a19;
+  --muted: #6b6b66;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121211;
+    --fg: #ececea;
+    --muted: #9a9a94;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+.placeholder {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 96px 16px;
+}
+
+.muted {
+  color: var(--muted);
+}

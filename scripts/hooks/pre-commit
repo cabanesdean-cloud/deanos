@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Blocks commits that contain secrets or private identifiers.
+# Enable once per clone:  git config core.hooksPath scripts/hooks
+set -euo pipefail
+
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks git --staged --redact --no-banner
+else
+  echo "pre-commit: gitleaks not installed (brew install gitleaks); secret scan skipped" >&2
+  exit 1
+fi
+
+# Optional private denylist of extended-regex patterns, kept outside the repo.
+denylist="${DEANOS_DENYLIST:-$HOME/Projects/deanos-private/denylist.txt}"
+if [[ -f "$denylist" ]]; then
+  if git diff --cached --name-only --diff-filter=ACMR -z | xargs -0 grep -EnHf "$denylist" --; then
+    echo "pre-commit: staged files match the private denylist (see above)" >&2
+    exit 1
+  fi
+fi

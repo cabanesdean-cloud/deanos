@@ -1,0 +1,19 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "web": {
+      "root": "web/",
+      "framework": "nextjs"
+    },
+    "engine": {
+      "root": "engine/",
+      "framework": "fastapi",
+      "entrypoint": "deanos_engine.api:app"
+    }
+  },
+  "redirects": [{ "source": "/", "destination": "/deanos", "permanent": false }],
+  "rewrites": [
+    { "source": "/deanos/api/(.*)", "destination": { "service": "engine" } },
+    { "source": "/(.*)", "destination": { "service": "web" } }
+  ]
+}

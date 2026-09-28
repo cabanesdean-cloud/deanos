@@ -1,0 +1,51 @@
+[project]
+name = "deanos-engine"
+version = "0.1.0"
+description = "Portfolio risk and modeling engine behind DeanOS."
+requires-python = ">=3.13,<3.14"
+# Runtime dependencies only: everything here ships in the Vercel function bundle
+# (limit 500 MB uncompressed). pyarrow is deliberately absent (+155 MB); the
+# price snapshot is a compressed NumPy archive instead.
+dependencies = [
+    "fastapi>=0.141",
+    "numpy>=2.3,<2.6",  # hmmlearn 0.3.3 uses array.shape assignment, deprecated in NumPy 2.5
+    "pandas>=2.3",
+    "scipy>=1.16",
+    "scikit-learn>=1.7",
+    "statsmodels>=0.14.5",
+    "hmmlearn>=0.3.3",
+    "arch>=7.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "httpx>=0.28",
+    "uvicorn>=0.35",
+    "ruff>=0.12",
+    "mypy>=1.17",
+    "pandas-stubs",
+]
+
+[tool.vercel]
+entrypoint = "deanos_engine.api:app"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+filterwarnings = [
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated",
+    "ignore:Setting the shape on a NumPy array has been deprecated:DeprecationWarning:hmmlearn",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "NPY"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+ignore_missing_imports = true
