@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo } from "react";
 
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { apiUrl, useApi } from "@/lib/api";
 import { DEFAULT_SPEC, type Holding, parseSpec, toSpec } from "@/lib/portfolio";
 import { SECTIONS, type SectionId } from "@/lib/site";
@@ -61,6 +62,7 @@ export function Explorer() {
 
   return (
     <>
+      <h1 className="visually-hidden">Portfolio explorer</h1>
       <PortfolioBar
         holdings={holdings}
         spec={canonical}
@@ -79,7 +81,9 @@ export function Explorer() {
           ))}
         </nav>
         <div key={`${section}:${canonical}`} style={{ minWidth: 0 }}>
-          {RENDER[section]({ spec: canonical, demos })}
+          <ErrorBoundary label={SECTIONS.find((s) => s.id === section)?.label ?? section}>
+            {RENDER[section]({ spec: canonical, demos })}
+          </ErrorBoundary>
         </div>
       </div>
     </>

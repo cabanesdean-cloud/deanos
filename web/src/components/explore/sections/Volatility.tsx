@@ -148,7 +148,7 @@ export function VolatilitySection({ spec }: SectionProps) {
             </div>
 
             <Block title="Holdings" caption="Each holding fitted on its own. Compared with its own full-sample volatility.">
-              <div className="table-wrap">
+              <div className="table-wrap" tabIndex={0}>
                 <table className="table">
                   <thead>
                     <tr>

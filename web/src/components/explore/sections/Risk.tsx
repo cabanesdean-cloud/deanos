@@ -62,7 +62,7 @@ export function RiskSection({ spec }: SectionProps) {
                 <Stat label="VaR 99%, filtered historical" value={lossPct(e99.filtered_historical.var)} range={`about 2 or 3 days a year`} />
                 <Stat label="Expected shortfall 99%" value={lossPct(e99.filtered_historical.es)} />
               </StatGrid>
-              <div className="table-wrap">
+              <div className="table-wrap" tabIndex={0}>
                 <table className="table">
                   <thead>
                     <tr>
@@ -115,7 +115,7 @@ export function RiskSection({ spec }: SectionProps) {
                   height={240}
                   ariaLabel="Daily portfolio returns against the one-day 95% VaR forecast, with breaches marked."
                 />
-                <div className="table-wrap">
+                <div className="table-wrap" tabIndex={0}>
                   <table className="table">
                     <thead>
                       <tr>
@@ -150,7 +150,7 @@ export function RiskSection({ spec }: SectionProps) {
                   <summary className="muted" style={{ cursor: "pointer" }}>
                     Results at 99%
                   </summary>
-                  <div className="table-wrap">
+                  <div className="table-wrap" tabIndex={0}>
                     <table className="table">
                       <tbody>
                         {METHODS.map((m) => {
@@ -178,7 +178,7 @@ export function RiskSection({ spec }: SectionProps) {
               title="Which holdings drive the loss estimate"
               caption="Each holding's share of 95% parametric VaR (Euler allocation). The shares add up to the total; a negative share means the holding tends to offset losses elsewhere."
             >
-              <div className="table-wrap">
+              <div className="table-wrap" tabIndex={0}>
                 <table className="table">
                   <thead>
                     <tr>

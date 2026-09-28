@@ -99,7 +99,7 @@ export function RegimesSection({ spec }: SectionProps) {
               title="What each regime has looked like"
               caption="S&P 500 figures are averages over all days the model assigned to each regime since 2000. Portfolio figures use this portfolio's own history window. Expected duration comes from the model's transition probabilities."
             >
-              <div className="table-wrap">
+              <div className="table-wrap" tabIndex={0}>
                 <table className="table">
                   <thead>
                     <tr>
@@ -144,7 +144,7 @@ export function RegimesSection({ spec }: SectionProps) {
                 <summary className="muted" style={{ cursor: "pointer" }}>
                   All {st.starts.length} fits
                 </summary>
-                <div className="table-wrap">
+                <div className="table-wrap" tabIndex={0}>
                   <table className="table">
                     <thead>
                       <tr>

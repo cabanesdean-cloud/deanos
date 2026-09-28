@@ -31,7 +31,7 @@ function useDemoResults<T>(path: string | null, extra: Record<string, string> = 
 function Frame({ rows, error, children }: { rows: unknown[] | null; error: string | null; children: () => React.ReactNode }) {
   if (error) return <Notice>Live validation results could not load: {error}</Notice>;
   if (!rows) return <Skeleton height={160} />;
-  return <div className="table-wrap">{children()}</div>;
+  return <div className="table-wrap" tabIndex={0}>{children()}</div>;
 }
 
 function VarValidation() {
@@ -208,7 +208,7 @@ function RegimeValidation() {
   if (res.status !== "ready") return <Skeleton height={160} />;
   const st = res.data.stability;
   return (
-    <div className="table-wrap">
+    <div className="table-wrap" tabIndex={0}>
       <table className="table">
         <thead>
           <tr>

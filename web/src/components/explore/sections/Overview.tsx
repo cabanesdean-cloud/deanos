@@ -104,7 +104,7 @@ export function OverviewSection({ spec }: SectionProps) {
                 title="Where the risk comes from"
                 caption="Share of the portfolio's variance from each holding. A holding can carry more risk than its weight when it is volatile or moves with everything else."
               >
-                <div className="table-wrap">
+                <div className="table-wrap" tabIndex={0}>
                   <table className="table">
                     <thead>
                       <tr>
@@ -137,7 +137,7 @@ export function OverviewSection({ spec }: SectionProps) {
                 title="Correlation to benchmarks"
                 caption="Correlation of daily returns: 1 moves in lockstep, 0 unrelated, below 0 tends to move the other way."
               >
-                <div className="table-wrap">
+                <div className="table-wrap" tabIndex={0}>
                   <table className="table">
                     <tbody>
                       {Object.entries(m.correlations).map(([k, v]) => (

@@ -1,12 +1,14 @@
 /** Correlation matrix as a shaded table: sequential blue by |ρ|, sign shown in the number. */
 export function HeatTable({ labels, values, caption }: { labels: string[]; values: number[][]; caption: string }) {
   return (
-    <div className="table-wrap">
+    <div className="table-wrap" tabIndex={0}>
       <table className="table" style={{ width: "auto" }}>
         <caption className="visually-hidden">{caption}</caption>
         <thead>
           <tr>
-            <th />
+            <th>
+              <span className="visually-hidden">Holding</span>
+            </th>
             {labels.map((l) => (
               <th key={l} scope="col">
                 {l}

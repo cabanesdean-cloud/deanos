@@ -138,11 +138,13 @@ export function CompareSection({ spec, demos }: SectionProps) {
               />
             </Block>
             <Block title="Side by side">
-              <div className="table-wrap">
+              <div className="table-wrap" tabIndex={0}>
                 <table className="table">
                   <thead>
                     <tr>
-                      <th />
+                      <th>
+                        <span className="visually-hidden">Measure</span>
+                      </th>
                       <th>{aName}</th>
                       <th>{bName}</th>
                       <th>Difference</th>
@@ -178,7 +180,7 @@ export function CompareSection({ spec, demos }: SectionProps) {
               </div>
             </Block>
             <Block title="In past crises" caption="Peak-to-trough returns, replayed as on the Stress tests page.">
-              <div className="table-wrap">
+              <div className="table-wrap" tabIndex={0}>
                 <table className="table">
                   <thead>
                     <tr>

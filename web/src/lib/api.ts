@@ -39,8 +39,9 @@ async function request<T>(url: string): Promise<T> {
     const body = (await res.json().catch(() => null)) as { error?: string; detail?: unknown } | null;
     if (!res.ok) {
       const msg =
-        body?.error ??
-        (res.status === 422 ? "Some settings are out of range." : `Request failed (${res.status}).`);
+        res.status >= 500 && res.status !== 503
+          ? "The analysis engine is not responding right now. Try again in a moment."
+          : (body?.error ?? (res.status === 422 ? "Some settings are out of range." : `Request failed (${res.status}).`));
       throw new ApiError(msg, res.status);
     }
     return body as T;
@@ -75,8 +76,9 @@ export type ApiState<T> =
   | { status: "error"; data?: undefined; error: ApiError };
 
 /** Fetch ``url`` (or nothing when null). Keeps the previous data visible while a new URL loads. */
-export function useApi<T>(url: string | null): ApiState<T> & { stale: boolean } {
+export function useApi<T>(url: string | null): ApiState<T> & { stale: boolean; retry: () => void } {
   const [state, setState] = useState<{ url: string; s: ApiState<T> } | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!url || cache.has(url)) return;
@@ -88,10 +90,14 @@ export function useApi<T>(url: string | null): ApiState<T> & { stale: boolean } 
     return () => {
       live = false;
     };
-  }, [url]);
+  }, [url, attempt]);
 
-  if (url && cache.has(url)) return { status: "ready", data: cache.get(url) as T, stale: false };
-  if (state && state.url === url) return { ...state.s, stale: false };
-  if (state?.s.status === "ready") return { ...state.s, stale: true };
-  return { status: "loading", stale: false };
+  const retry = () => {
+    setState(null);
+    setAttempt((n) => n + 1);
+  };
+  if (url && cache.has(url)) return { status: "ready", data: cache.get(url) as T, stale: false, retry };
+  if (state && state.url === url) return { ...state.s, stale: false, retry };
+  if (state?.s.status === "ready") return { ...state.s, stale: true, retry };
+  return { status: "loading", stale: false, retry };
 }

@@ -36,6 +36,12 @@ class Holding:
     weight: float
 
 
+def _show(raw: str) -> str:
+    """User input as it may appear in an error message: ticker characters only, truncated."""
+    safe = re.sub(r"[^A-Za-z0-9.\- ]", "", raw).strip()[:12]
+    return safe or "That entry"
+
+
 def normalize_ticker(raw: str) -> str:
     # Yahoo-style class shares: BRK.B -> BRK-B.
     return raw.strip().upper().replace(".", "-").replace("/", "-")
@@ -54,11 +60,11 @@ def parse_portfolio(spec: str) -> list[Holding]:
         if not part:
             continue
         if ":" not in part:
-            raise PortfolioError(f"'{part}' needs a weight, like {part.upper()}:10.")
+            raise PortfolioError(f"'{_show(part)}' needs a weight, like {_show(part).upper()}:10.")
         t_raw, w_raw = part.split(":", 1)
         ticker = normalize_ticker(t_raw)
         if not _TICKER_RE.match(ticker):
-            raise PortfolioError(f"'{t_raw.strip()}' is not a valid ticker.")
+            raise PortfolioError(f"'{_show(t_raw)}' is not a valid ticker.")
         try:
             weight = float(w_raw)
         except ValueError as exc:

@@ -564,6 +564,8 @@ a.menu-item:hover {
 
 .segmented {
   display: inline-flex;
+  flex-wrap: wrap;
+  max-width: 100%;
   padding: 2px;
   border: var(--hairline);
   border-radius: var(--radius);
@@ -863,8 +865,12 @@ a.menu-item:hover {
     grid-template-columns: repeat(3, 1fr);
   }
 }
-.three-up h3 {
+.three-up .h3 {
   margin-bottom: var(--s-2);
+}
+.h3 {
+  font-size: var(--t-18);
+  letter-spacing: -0.01em;
 }
 
 /* Explorer */
@@ -1110,14 +1116,20 @@ a.menu-item:hover {
     gap: var(--s-16);
   }
 }
+.method-layout > * {
+  min-width: 0;
+}
 .method-nav {
-  display: grid;
-  gap: 2px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--s-4);
   font-size: var(--t-14);
   align-self: start;
 }
 @media (min-width: 1000px) {
   .method-nav {
+    display: grid;
+    gap: 2px;
     position: sticky;
     top: 80px;
   }
@@ -1165,7 +1177,8 @@ a.menu-item:hover {
 }
 dl.facts {
   display: grid;
-  grid-template-columns: max-content 1fr;
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+  overflow-wrap: anywhere;
   gap: var(--s-2) var(--s-6);
   font-size: var(--t-14);
 }
@@ -1174,6 +1187,15 @@ dl.facts dt {
 }
 dl.facts dd {
   margin: 0;
+}
+@media (max-width: 560px) {
+  dl.facts {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  dl.facts dd {
+    margin-bottom: var(--s-3);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

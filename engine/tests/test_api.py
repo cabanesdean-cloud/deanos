@@ -97,3 +97,33 @@ def test_data_unavailable_returns_503(monkeypatch: pytest.MonkeyPatch, tmp_path)
 
 def test_snapshot_fixture_is_isolated(snapshot: Snapshot) -> None:
     assert "SPY" in snapshot.prices
+
+
+@pytest.mark.usefixtures("installed_snapshot")
+def test_security_headers() -> None:
+    resp = client.get(f"{BASE}/overview", params={"p": "SPY:1"})
+    assert resp.headers["x-content-type-options"] == "nosniff"
+    assert resp.headers["content-security-policy"] == "default-src 'none'; frame-ancestors 'none'"
+    assert resp.headers["x-frame-options"] == "DENY"
+    assert "set-cookie" not in resp.headers
+
+
+@pytest.mark.usefixtures("installed_snapshot")
+def test_validation_errors_are_plain_json() -> None:
+    resp = client.get(f"{BASE}/simulation", params={"p": "SPY:1", "paths": 1})
+    assert resp.status_code == 422
+    assert resp.json() == {"error": "Invalid value for paths."}
+
+
+def test_unexpected_errors_hide_internals(monkeypatch: pytest.MonkeyPatch) -> None:
+    import deanos_engine.api as api_mod
+
+    def boom() -> None:
+        raise RuntimeError("secret internal detail /some/path")
+
+    monkeypatch.setattr(api_mod, "get_snapshot", boom)
+    c = TestClient(app, raise_server_exceptions=False)
+    resp = c.get(f"{BASE}/overview", params={"p": "SPY:1"})
+    assert resp.status_code == 500
+    assert "secret" not in resp.text and "/some/path" not in resp.text
+    assert resp.headers["cache-control"] == "no-store"

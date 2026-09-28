@@ -10,6 +10,7 @@ and the nightly data snapshot, so the CDN can cache them.
 
 from __future__ import annotations
 
+import logging
 import platform
 import time
 from collections.abc import Callable
@@ -19,7 +20,9 @@ from typing import Annotated, Any, Literal
 import numpy as np
 import pandas as pd
 from fastapi import APIRouter, FastAPI, Query, Request, Response
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 from deanos_engine import __version__
 from deanos_engine._json import clean
@@ -49,6 +52,31 @@ app = FastAPI(
     redoc_url=None,
 )
 router = APIRouter(prefix=API_PREFIX)
+log = logging.getLogger("deanos.api")
+
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "X-Frame-Options": "DENY",
+    "Cross-Origin-Resource-Policy": "same-origin",
+}
+# JSON responses load nothing; the interactive docs page needs its CDN assets.
+API_CSP = "default-src 'none'; frame-ancestors 'none'"
+
+
+class SecurityHeaders(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        response = await call_next(request)
+        for k, v in SECURITY_HEADERS.items():
+            response.headers.setdefault(k, v)
+        if not request.url.path.startswith(f"{API_PREFIX}/docs"):
+            response.headers.setdefault("Content-Security-Policy", API_CSP)
+        if response.status_code >= 500:
+            response.headers["Cache-Control"] = "no-store"
+        return response
+
+
+app.add_middleware(SecurityHeaders)
 
 PortfolioQuery = Annotated[
     str,
@@ -64,6 +92,23 @@ Years = Annotated[int, Query(ge=2, le=26)]
 @app.exception_handler(PortfolioError)
 async def _portfolio_error(_: Request, exc: PortfolioError) -> JSONResponse:
     return JSONResponse(status_code=400, content={"error": str(exc)})
+
+
+@app.exception_handler(RequestValidationError)
+async def _validation_error(_: Request, exc: RequestValidationError) -> JSONResponse:
+    fields = sorted({str(e["loc"][-1]) for e in exc.errors() if e.get("loc")})
+    msg = f"Invalid value for {', '.join(fields)}." if fields else "Invalid request."
+    return JSONResponse(status_code=422, content={"error": msg})
+
+
+@app.exception_handler(Exception)
+async def _unexpected(_: Request, exc: Exception) -> JSONResponse:
+    log.exception("unhandled error", exc_info=exc)
+    return JSONResponse(
+        status_code=500,
+        content={"error": "Something went wrong on our side. Please try again."},
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @app.exception_handler(DataUnavailableError)
@@ -112,7 +157,7 @@ def _timed(fn: Callable[[], dict[str, Any]]) -> dict[str, Any]:
 # ─── Metadata ───────────────────────────────────────────────────────────────────
 
 
-@router.get("/health")
+@router.api_route("/health", methods=["GET", "HEAD"])
 def health() -> dict[str, Any]:
     deps = [
         "fastapi",

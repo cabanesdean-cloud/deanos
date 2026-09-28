@@ -25,6 +25,9 @@ def make_snapshot(seed: int = 0) -> Snapshot:
         "BBB": 1.5 * market + rng.normal(0, 0.012, n),
         "CCC": 0.5 * market - 0.3 * rates + rng.normal(0, 0.008, n),
     }
+    # Twenty more stocks so a maximum-size (25 holding) portfolio can be tested.
+    for k in range(1, 21):
+        rets[f"S{k:02d}"] = rng.uniform(0.5, 1.5) * market + rng.normal(0, 0.012, n)
     prices = pd.DataFrame({t: 100 * np.cumprod(1 + r) for t, r in rets.items()}, index=dates)
     prices.loc[:"2014-12-31", "BBB"] = np.nan  # listed 2015
     prices.loc[:"2025-12-31", "CCC"] = np.nan  # listed 2026: under a year of history

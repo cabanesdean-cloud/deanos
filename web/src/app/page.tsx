@@ -37,21 +37,21 @@ export default function Home() {
 
       <section className="three-up" aria-label="What you can explore">
         <div>
-          <h3>How much could it lose?</h3>
+          <h2 className="h3">How much could it lose?</h2>
           <p className="muted">
             Typical bad days, the worst historical crashes replayed on your holdings, and custom shocks to stocks
             and interest rates.
           </p>
         </div>
         <div>
-          <h3>How uncertain is the future?</h3>
+          <h2 className="h3">How uncertain is the future?</h2>
           <p className="muted">
             Thousands of simulated years built from real market history, volatility forecasts, and the market
             regime the model thinks we are in.
           </p>
         </div>
         <div>
-          <h3>What is it really exposed to?</h3>
+          <h2 className="h3">What is it really exposed to?</h2>
           <p className="muted">
             Factor exposures to the market, size, value, profitability, investment and momentum, and a side-by-side
             comparison with any other portfolio.
@@ -61,21 +61,21 @@ export default function Home() {
 
       <section className="three-up" aria-label="How it works">
         <div>
-          <h3>The data</h3>
+          <h2 className="h3">The data</h2>
           <p className="muted">
             Daily prices for S&amp;P 500 stocks and major ETFs since 2000, plus the Fama-French factor library,
             refreshed every weeknight.
           </p>
         </div>
         <div>
-          <h3>The models</h3>
+          <h2 className="h3">The models</h2>
           <p className="muted">
             GARCH volatility, hidden Markov regimes, filtered historical VaR, block-bootstrap simulation and
             factor regressions, each tested against reference implementations.
           </p>
         </div>
         <div>
-          <h3>The honesty</h3>
+          <h2 className="h3">The honesty</h2>
           <p className="muted">
             Every model has a <Link href="/methodology">methodology page</Link> covering its assumptions, where it
             fails, and live validation results.

@@ -126,7 +126,7 @@ export function StressSection({ spec }: SectionProps) {
                   height={240}
                   ariaLabel={`Value path during ${sel.name}.`}
                 />
-                <div className="table-wrap">
+                <div className="table-wrap" tabIndex={0}>
                   <table className="table">
                     <thead>
                       <tr>
@@ -179,7 +179,7 @@ export function StressSection({ spec }: SectionProps) {
               <StatGrid>
                 <Stat label="Estimated portfolio move" value={signedPct(cs.total)} range="instantaneous, linear" />
               </StatGrid>
-              <div className="table-wrap">
+              <div className="table-wrap" tabIndex={0}>
                 <table className="table">
                   <thead>
                     <tr>

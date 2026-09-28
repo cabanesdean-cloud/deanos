@@ -126,7 +126,7 @@ export function FactorsSection({ spec }: SectionProps) {
             </Block>
 
             <Block title="Detail" caption="Return contribution is the loading times the factor's average return over the window: how much of the portfolio's return each exposure accounts for.">
-              <div className="table-wrap">
+              <div className="table-wrap" tabIndex={0}>
                 <table className="table">
                   <thead>
                     <tr>

@@ -11,7 +11,7 @@ export function Loaded<T>({
   title,
   children,
 }: {
-  state: ApiState<T> & { stale: boolean };
+  state: ApiState<T> & { stale: boolean; retry?: () => void };
   title: string;
   children: (data: T, stale: boolean) => ReactNode;
 }) {
@@ -23,9 +23,15 @@ export function Loaded<T>({
           <h2 className="section__eyebrow">{title}</h2>
         </header>
         <Notice tone="error">
-          {state.status === "error" && state.error.status === 400
-            ? state.error.message
-            : `This section could not load: ${state.error.message}`}
+          {state.error.status === 400 ? state.error.message : `This section could not load. ${state.error.message}`}
+          {state.error.status !== 400 && state.retry && (
+            <>
+              {" "}
+              <button type="button" className="button button--small" onClick={state.retry}>
+                Try again
+              </button>
+            </>
+          )}
         </Notice>
       </article>
     );

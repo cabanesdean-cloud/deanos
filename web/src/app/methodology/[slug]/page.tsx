@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Validation } from "@/components/methodology/Validation";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { getMethod, METHODS } from "@/content/methodology";
 
 export function generateStaticParams() {
@@ -93,7 +94,9 @@ export default async function MethodPage(props: PageProps<"/methodology/[slug]">
               <h2>Validation on current data</h2>
               {m.validationIntro && <p className="muted">{m.validationIntro}</p>}
               <div style={{ maxWidth: "none" }}>
-                <Validation kind={m.validation} />
+                <ErrorBoundary label="validation">
+                  <Validation kind={m.validation} />
+                </ErrorBoundary>
               </div>
             </>
           )}
