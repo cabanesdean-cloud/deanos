@@ -127,8 +127,9 @@ def _respond(response: Response, body: dict[str, Any], snap: Snapshot) -> dict[s
 
 
 def _load(p: str, years: int) -> tuple[Snapshot, PortfolioData]:
+    holdings = parse_portfolio(p)  # validate input before touching data
     snap = get_snapshot()
-    data = prepare(snap, parse_portfolio(p), lookback_days=years * TRADING_DAYS)
+    data = prepare(snap, holdings, lookback_days=years * TRADING_DAYS)
     return snap, data
 
 
@@ -359,9 +360,10 @@ def compare_portfolios(
     b: Annotated[str, Query(max_length=400)],
     years: Years = 10,
 ) -> dict[str, Any]:
+    ha, hb = parse_portfolio(a), parse_portfolio(b)
     snap = get_snapshot()
-    da = prepare(snap, parse_portfolio(a), lookback_days=years * TRADING_DAYS)
-    db = prepare(snap, parse_portfolio(b), lookback_days=years * TRADING_DAYS)
+    da = prepare(snap, ha, lookback_days=years * TRADING_DAYS)
+    db = prepare(snap, hb, lookback_days=years * TRADING_DAYS)
     da, db = align(da, db)
     body = _timed(
         lambda: compare.analyze(

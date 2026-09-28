@@ -87,6 +87,13 @@ def test_simulation_size_is_bounded() -> None:
     assert "at most" in resp.json()["error"]
 
 
+def test_bad_input_is_400_even_without_data(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:  # type: ignore[no-untyped-def]
+    set_snapshot(None)
+    monkeypatch.setenv("DEANOS_DATA_PATH", str(tmp_path / "missing.npz"))
+    assert client.get(f"{BASE}/overview", params={"p": "SPY:-1"}).status_code == 400
+    assert client.get(f"{BASE}/compare", params={"a": "SPY:1", "b": "x"}).status_code == 400
+
+
 def test_data_unavailable_returns_503(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:  # type: ignore[no-untyped-def]
     set_snapshot(None)
     monkeypatch.setenv("DEANOS_DATA_PATH", str(tmp_path / "missing.npz"))
