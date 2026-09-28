@@ -28,3 +28,4 @@ __pycache__/
 .claude/skills/
 .claude/settings.local.json
 CLAUDE.md
+.vercel

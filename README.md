@@ -22,7 +22,7 @@ Both deploy as one Vercel project using [Services](https://vercel.com/docs/servi
 
 ## Local development
 
-Requirements: Node 22+, Python 3.13, [uv](https://docs.astral.sh/uv/), gitleaks.
+Requirements: Node 24, Python 3.13, [uv](https://docs.astral.sh/uv/), gitleaks.
 
 ```bash
 git config core.hooksPath scripts/hooks
