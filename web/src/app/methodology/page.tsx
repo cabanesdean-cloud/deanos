@@ -7,7 +7,7 @@ import { OG_IMAGE } from "@/lib/site";
 export const metadata: Metadata = {
   title: "Methodology",
   description:
-    "How each DeanOS and Options Pricing model works: what it does, why it is used, its assumptions, how to read it, and where it fails.",
+    "How each DeanOS, Options Pricing and Transaction ML model works: what it does, why it is used, its assumptions, how to read it, and where it fails.",
   alternates: { canonical: "/methodology" },
   openGraph: { title: "Methodology · DeanOS", description: "How each DeanOS model works, what it assumes, and where it fails.", url: "/methodology", images: [OG_IMAGE] },
 };
@@ -42,6 +42,7 @@ export default function MethodologyIndex() {
           These models describe historical data or option prices under stated assumptions. None of them predicts
           returns, and none of the output is investment advice. The example portfolios are illustrations built from
           broad, widely held funds and companies, and option prices on this site are model values, not market quotes.
+          The transaction categorizer is trained and tested on invented data only.
         </p>
       </section>
     </div>

@@ -18,10 +18,14 @@ export type ValidationKind =
   | "options-mc"
   | "options-binomial"
   | "options-iv"
+  | "tx-data"
+  | "tx-model"
+  | "tx-eval"
+  | "tx-limits"
   | null;
 
-/** Which project a model belongs to: the portfolio engine or the options pricer. */
-export type MethodGroup = "portfolio" | "options";
+/** Which project a model belongs to: the portfolio engine, the options pricer or the transaction categorizer. */
+export type MethodGroup = "portfolio" | "options" | "transactions";
 
 export type Method = {
   slug: string;
@@ -814,6 +818,305 @@ No-arbitrage range (call): max(S·e^(−qT) − K·e^(−rT), 0) < price < S·e^
       "Hull, J. C. Options, Futures, and Other Derivatives. Pearson (implied volatility).",
     ],
   },
+  // ─── Transaction ML ─────────────────────────────────────────────────────────
+  {
+    slug: "transactions-data",
+    group: "transactions",
+    title: "Synthetic transaction data",
+    short: "Synthetic data",
+    summary: "How the invented bank-statement descriptors are generated, and why the train, validation and test splits are made by merchant rather than by row.",
+    what: (
+      <>
+        <p>
+          A seeded generator invents 24,000 bank-statement lines in 14 spending categories. Each line has a descriptor
+          (the text a bank prints, such as &quot;SQ *BLUE BOTTLE COFFEE SAN FRANCISCO CA&quot;), a date, and usually an
+          amount. Merchants are either well-known public brands or local businesses assembled from generic word
+          lists. The people in peer-to-peer transfers and the employers in payroll deposits are made up.
+        </p>
+        <p>
+          The generator imitates how card and ACH descriptors look: processor prefixes (&quot;SQ *&quot;,
+          &quot;TST*&quot;, &quot;PAYPAL *&quot;), store numbers, a city and state, reference numbers, truncation to a
+          fixed field width, abbreviations, dropped punctuation and mixed casing. Amounts follow a distribution per
+          category, and one row in ten has no amount at all.
+        </p>
+      </>
+    ),
+    why: (
+      <>
+        <p>
+          Real transaction data is personal financial data. Publishing it, or a model trained on it, is not an option,
+          and no public dataset of labeled statement descriptors is large and clean enough to use. Synthetic data makes
+          the whole pipeline reproducible and shareable: anyone can regenerate the exact dataset from the seed.
+        </p>
+        <p>
+          The split is the part that matters most. Every transaction from one merchant, and from its sister brands
+          (for example a ride-hailing app and its food-delivery arm), goes to exactly one of training, validation or
+          test. The test set therefore measures what the model does with a merchant it has never seen, which is the
+          only hard case in practice: a merchant already seen can be looked up.
+        </p>
+      </>
+    ),
+    inputs: [
+      "A fixed seed (20260928), so the dataset is identical on every machine.",
+      "About 210 public brand names, each with a category and descriptor templates.",
+      "Generic word lists for local businesses (for example \"family dental\", \"taqueria\", \"auto repair\"), about 70 invented merchants per category.",
+      "Split shares of 70% training, 15% validation and 15% test, assigned by merchant group.",
+    ],
+    assumptions: [
+      "The descriptor noise (prefixes, truncation, casing, store numbers) resembles what US banks print. It was written from public examples of statement formats, not measured on real statements.",
+      "Category frequencies and amount ranges are plausible but invented.",
+      "Each merchant has one true category, except a few deliberately ambiguous chains (a supercenter receipt can be groceries or shopping) whose label is drawn at random per transaction. That puts a floor under the error rate, as with real data.",
+    ],
+    reading: (
+      <p>
+        The table below counts rows, merchants and merchant groups in each split. &quot;Merchant groups shared across
+        splits&quot; must be zero: that is the leakage check. Test counts per category show how much evidence stands
+        behind each per-category score; categories with a few hundred test rows from a handful of merchants have wide
+        uncertainty.
+      </p>
+    ),
+    limitations: [
+      "Synthetic text is cleaner and more regular than real statements. Scores here are an upper bound on what the same model would reach on real bank data.",
+      "The brand list is finite. A real deployment meets thousands of merchants the generator never imagined.",
+      "Only US-style descriptors in English.",
+    ],
+    failures: [
+      "If the generator's templates are too distinctive per category, the model learns the templates rather than the language of merchants. The by-merchant-type results on the limitations page are the check: local businesses built from category words are easy, unseen brand names are not.",
+    ],
+    validation: "tx-data",
+    validationIntro: "Counts from the dataset the running engine's model was trained and tested on.",
+    references: [
+      "Kaufman, S., Rosset, S., Perlich, C. and Stitelman, O. (2012). Leakage in data mining: formulation, detection, and avoidance. ACM Transactions on Knowledge Discovery from Data 6(4).",
+      "Jordon, J. et al. (2022). Synthetic data: what, why and how? The Royal Society and The Alan Turing Institute.",
+    ],
+  },
+  {
+    slug: "transactions-model",
+    group: "transactions",
+    title: "Features and model",
+    short: "Features and model",
+    summary: "Character n-grams, words and amount flags feeding a temperature-scaled multinomial logistic regression, with an exact per-word explanation of every prediction.",
+    what: (
+      <>
+        <p>
+          Each descriptor is normalized (lower case, accents folded, punctuation removed, every digit mapped to 0 so store and reference numbers keep their shape but cannot be memorized) and turned into
+          three blocks of features: character n-grams of 3 to 5 characters within word boundaries, words and word
+          pairs, and a handful of amount flags (debit or credit, a size bin, whole dollars, a .99 or .95 ending, or
+          &quot;amount missing&quot;). The text blocks are TF-IDF weighted with sublinear term frequency and scaled to
+          unit length per block.
+        </p>
+        <p>
+          A multinomial logistic regression turns the features into one score per category, and a softmax turns the
+          scores into probabilities. The probabilities are divided by a temperature T fitted on validation merchants
+          (temperature scaling), which fixes over- or under-confidence without changing which category wins.
+        </p>
+      </>
+    ),
+    why: (
+      <>
+        <p>
+          Character n-grams survive the damage statement formats do to names: &quot;STARBUCKS #1234&quot; and a
+          truncated &quot;STARBUCK&quot; share most of their n-grams, and so do &quot;COFFEE&quot; and
+          &quot;COFFE&quot;. Words add meaning that n-grams blur, such as &quot;family dental&quot;.
+        </p>
+        <p>
+          A linear model is used because it is explainable exactly. A category&apos;s score is a sum over features, so
+          every prediction can be broken down into how much each word and the amount pushed toward or away from each
+          category, and the pieces add up to the score. On short texts like these, linear models on n-grams are also
+          hard to beat by much.
+        </p>
+      </>
+    ),
+    inputs: [
+      "A descriptor of up to 200 characters.",
+      "An optional amount in dollars (negative for money going out).",
+      "The trained artifact: vocabulary, IDF weights, coefficients (stored as float16), intercepts and the temperature.",
+    ],
+    formula: `x = [ tfidf_char(d) / ‖·‖ ,  tfidf_word(d) / ‖·‖ ,  0.5 · amount_flags(a) ]
+score_k = w_k · x + b_k
+P(k | d, a) = exp(score_k / T) / Σ_j exp(score_j / T)
+Contribution of feature i to category k = x_i · (w_ik − mean_j w_ij) / T
+Σ_i contributions + (b_k − mean_j b_j) / T = centered score of k`,
+    assumptions: [
+      "Word order beyond pairs does not matter.",
+      "Features add up: the model cannot learn that a word means one thing next to another word and something else alone, beyond what word pairs capture.",
+      "The regularization strength C is chosen on validation merchants by macro-F1, and the temperature by log loss on the same merchants. The test set is used once, at the end.",
+      "Training runs offline with scikit-learn (L2-penalized, L-BFGS). The site runs inference in NumPy from the saved weights, so scikit-learn is not needed to serve predictions.",
+    ],
+    reading: (
+      <>
+        <p>
+          The confidence shown is the calibrated probability of the top category. The explanation colors each word
+          by how much it moved the score of the chosen category: toward it, or away from it. Contributions are
+          measured against the average across categories, because adding the same number to every category&apos;s
+          score changes nothing.
+        </p>
+        <p>
+          A low share of known features (text the model has never seen) is a warning sign: the model is then
+          guessing mostly from the amount and generic fragments.
+        </p>
+      </>
+    ),
+    limitations: [
+      "An explanation shows what the model used, not why a category is right. A confident prediction built on a store-number fragment is still a guess.",
+      "Weights are stored as float16 to keep the artifact under 1 MB. The published test metrics are recomputed from the stored float16 weights, so they describe the model that is actually served.",
+      "The vocabulary is fixed at training time. New words carry no weight until the model is retrained.",
+    ],
+    failures: [
+      "A brand name made of another category's words (say, a clothing brand called \"Harvest Kitchen\") is classified by its words, confidently and wrongly.",
+      "Very short descriptors (\"PAYMENT\", \"POS 0412\") carry almost no signal; the prediction then leans on the amount.",
+    ],
+    validation: "tx-model",
+    validationIntro:
+      "The regularization search on validation merchants, and ablations measured on the test merchants: each feature block alone and in combination.",
+    references: [
+      "Jurafsky, D. and Martin, J. H. Speech and Language Processing, 3rd ed. draft (chapters on logistic regression and naive Bayes text classification).",
+      "Guo, C., Pleiss, G., Sun, Y. and Weinberger, K. Q. (2017). On calibration of modern neural networks. ICML.",
+      "Pedregosa, F. et al. (2011). Scikit-learn: machine learning in Python. Journal of Machine Learning Research 12.",
+    ],
+  },
+  {
+    slug: "transactions-evaluation",
+    group: "transactions",
+    title: "Evaluation and leakage control",
+    short: "Evaluation and leakage",
+    summary: "Accuracy, macro-F1 and calibration on unseen merchants, compared with keyword rules and a majority guess, with merchant-level bootstrap intervals and a measured leaky split.",
+    what: (
+      <>
+        <p>
+          The model is scored once on the test merchants. Accuracy is the share of rows categorized correctly.
+          Macro-F1 averages the F1 score (the harmonic mean of precision and recall) over the 14 categories, so a small
+          category counts as much as a large one. Calibration is measured with the expected calibration error (ECE):
+          predictions are grouped into ten confidence bins, and ECE is the row-weighted average gap between the
+          confidence and the accuracy in each bin.
+        </p>
+        <p>
+          Two baselines put the numbers in context: always guessing the most common category, and a list of keyword
+          rules of the kind a person would write (&quot;UBER&quot; is transport, &quot;PAYROLL&quot; is income).
+          A third line uses the rules when one matches and the model otherwise.
+        </p>
+      </>
+    ),
+    why: (
+      <>
+        <p>
+          A model only earns its complexity if it beats the simple alternatives on the hard case. Keyword rules are
+          what most budgeting tools start with, so they are the baseline that matters.
+        </p>
+        <p>
+          The same model is also scored on a random row split, where most test merchants were seen in training. The
+          gap between the two numbers is the size of the mistake the merchant split avoids.
+        </p>
+      </>
+    ),
+    inputs: [
+      "Test rows: every transaction from 15% of merchant groups, none seen in training or validation.",
+      "The model's calibrated probabilities and the baselines' predictions for the same rows.",
+      "1,000 bootstrap resamples of merchant groups for the intervals.",
+    ],
+    formula: `Precision_k = TP_k / (TP_k + FP_k)     Recall_k = TP_k / (TP_k + FN_k)
+F1_k = 2 · Precision_k · Recall_k / (Precision_k + Recall_k)     Macro-F1 = mean_k F1_k
+ECE = Σ_b (n_b / n) · | accuracy_b − confidence_b |   (10 equal-width bins)
+Log loss = −(1/n) Σ_i ln P(true category of row i)`,
+    assumptions: [
+      "Rows from the same merchant are not independent: a model that misses a brand misses all of its rows. The bootstrap therefore resamples whole merchants, which gives wider and more honest intervals than resampling rows.",
+      "The gain over the keyword rules uses the same resamples for both, so it is a paired interval.",
+      "Temperature scaling is fitted on validation merchants and never sees test rows.",
+    ],
+    reading: (
+      <>
+        <p>
+          Read the interval before the point estimate. With about 170 test merchants, one brand family can move
+          accuracy by a few points, and the intervals show it.
+        </p>
+        <p>
+          ECE near zero means the confidence can be taken at face value: of predictions made at 80% confidence, about
+          80% are right. The coverage table on the limitations page shows the practical use: accept confident
+          predictions automatically and send the rest to a person.
+        </p>
+      </>
+    ),
+    limitations: [
+      "All numbers come from synthetic data. They show the method working and failing in controlled conditions, not what it would score on a real bank's data.",
+      "The keyword rules were written by the same person who wrote the generator, so they are a fair but not an adversarial baseline.",
+      "Rules-first can beat the model alone here because the rules were written for the very brands in the generator's list. On unseen merchants rules only help when a category word appears in the name.",
+    ],
+    failures: [
+      "A random row split would report near-perfect accuracy for a model that has only memorized merchant names. The table below shows by how much.",
+      "Macro-F1 on a category with few test merchants rests on very little evidence.",
+    ],
+    validation: "tx-eval",
+    validationIntro:
+      "Test-set results for the model the running engine serves. The test suite recomputes them from the stored weights and checks the metric code against scikit-learn's.",
+    references: [
+      "Naeini, M. P., Cooper, G. F. and Hauskrecht, M. (2015). Obtaining well calibrated probabilities using Bayesian binning. AAAI.",
+      "Efron, B. and Tibshirani, R. J. (1993). An Introduction to the Bootstrap. Chapman and Hall.",
+      "Kapoor, S. and Narayanan, A. (2023). Leakage and the reproducibility crisis in machine-learning-based science. Patterns 4(9).",
+    ],
+  },
+  {
+    slug: "transactions-limitations",
+    group: "transactions",
+    title: "Transaction ML limitations",
+    short: "Limitations",
+    summary: "Where the categorizer is weak: unseen brand names, missing amounts, ambiguous merchants, and the gap between synthetic and real statements.",
+    what: (
+      <>
+        <p>
+          The categorizer is a demonstration of a method on invented data. It shows how a transparent text model
+          behaves on merchants it has never seen, how to measure that honestly, and how confidence can be used to
+          decide when to ask a person.
+        </p>
+        <p>
+          It is weakest on well-known brand names it has not seen, because a brand name often says nothing about what
+          the brand sells. Local businesses are easy for the opposite reason: their names usually contain the category
+          (&quot;... family dental&quot;, &quot;... auto repair&quot;).
+        </p>
+      </>
+    ),
+    why: (
+      <p>
+        Every model has a region where it should not be trusted. Publishing where that region is, with numbers, is
+        more useful than a single headline accuracy.
+      </p>
+    ),
+    inputs: [
+      "The same test merchants as the evaluation page, grouped by merchant type.",
+      "The model's accuracy with and without the amount.",
+      "Coverage and accuracy at confidence thresholds from 30% to 99%.",
+    ],
+    assumptions: [
+      "A person reviewing low-confidence predictions is available and correct. Coverage figures describe how much work is left for them.",
+      "The descriptor is the only text. Real systems also use the merchant category code (MCC) sent by the card network, which settles most of these cases and is not modeled here.",
+    ],
+    reading: (
+      <p>
+        The first table shows accuracy by merchant type; the gap between brands and local businesses is the main
+        weakness. The coverage table reads as a trade-off: at a higher confidence threshold, fewer rows are categorized
+        automatically, and those that are are more often right.
+      </p>
+    ),
+    limitations: [
+      "Synthetic data. The model has never seen a real bank statement, and real descriptors are messier and far more varied.",
+      "Unseen brands are often wrong. The model can only use the characters in the name, and many brand names carry no category information.",
+      "One category per transaction. A supercenter receipt that is half groceries, half household goods gets one label.",
+      "No personalization. People disagree on categories (is a coffee subscription dining or a subscription?); the model learns the generator's labels.",
+      "US English descriptors only.",
+      "Educational only. Do not use it for tax, accounting or credit decisions.",
+    ],
+    failures: [
+      "Descriptors that are mostly reference numbers or processor boilerplate.",
+      "Names that collide with another category's vocabulary.",
+      "Amounts far outside the training ranges (a $40,000 grocery bill) push the amount flags into rarely seen bins.",
+      "Very long or unusual input is rejected rather than guessed: over 200 characters, or text with no letters or digits, returns an error.",
+    ],
+    validation: "tx-limits",
+    validationIntro: "Accuracy by merchant type, the effect of a missing amount, and the coverage-accuracy trade-off, on the test merchants.",
+    references: [
+      "Chow, C. K. (1970). On optimum recognition error and reject tradeoff. IEEE Transactions on Information Theory 16(1).",
+      "Mitchell, M. et al. (2019). Model cards for model reporting. FAT* Conference.",
+    ],
+  },
 ];
 
 export const METHOD_GROUPS: { id: MethodGroup; title: string; blurb: string }[] = [
@@ -826,6 +1129,11 @@ export const METHOD_GROUPS: { id: MethodGroup; title: string; blurb: string }[] 
     id: "options",
     title: "Options Pricing",
     blurb: "The models behind the options pricer: a closed-form formula, simulation, trees, and the inverse problem of implied volatility.",
+  },
+  {
+    id: "transactions",
+    title: "Transaction ML",
+    blurb: "The categorizer behind Transaction ML: synthetic data, an explainable text model, evaluation on unseen merchants, and where it fails.",
   },
 ];
 

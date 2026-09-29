@@ -9,6 +9,7 @@ import type { Demo, Factors, Overview, Regimes, Risk, Simulation, Stress, Volati
 import type { ValidationKind } from "@/content/methodology";
 
 import { OptionsValidationTable } from "./OptionsValidation";
+import { TxValidationTable } from "./TxValidation";
 
 /** Fetch one section for each example portfolio. */
 function useDemoResults<T>(path: string | null, extra: Record<string, string> = {}) {
@@ -322,6 +323,11 @@ export function Validation({ kind }: { kind: ValidationKind }) {
     case "options-binomial":
     case "options-iv":
       return <OptionsValidationTable kind={kind} />;
+    case "tx-data":
+    case "tx-model":
+    case "tx-eval":
+    case "tx-limits":
+      return <TxValidationTable kind={kind} />;
     default:
       return null;
   }

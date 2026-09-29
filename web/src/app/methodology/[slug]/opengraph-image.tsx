@@ -13,7 +13,12 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const { slug } = await params;
   const m = getMethod(slug);
   return ogImage({
-    eyebrow: m && groupOf(m) === "options" ? "Options Pricing · Methodology" : "DeanOS · Methodology",
+    eyebrow:
+      m && groupOf(m) === "options"
+        ? "Options Pricing · Methodology"
+        : m && groupOf(m) === "transactions"
+          ? "Transaction ML · Methodology"
+          : "DeanOS · Methodology",
     title: m?.short ?? "Methodology",
     subtitle: m?.summary ?? "How the models work and where they fail.",
   });

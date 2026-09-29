@@ -6,7 +6,7 @@ import { Validation } from "@/components/methodology/Validation";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { JsonLd } from "@/components/site/JsonLd";
 import { getMethod, groupOf, METHODS } from "@/content/methodology";
-import { OPTIONS_PROJECT, SITE } from "@/lib/site";
+import { OPTIONS_PROJECT, SITE, TX_PROJECT } from "@/lib/site";
 
 export function generateStaticParams() {
   return METHODS.map((m) => ({ slug: m.slug }));
@@ -24,7 +24,7 @@ export async function generateMetadata(props: PageProps<"/methodology/[slug]">):
     alternates: { canonical: `/methodology/${m.slug}` },
     openGraph: {
       type: "article",
-      title: `${m.title} · ${groupOf(m) === "options" ? OPTIONS_PROJECT.name : SITE.name}`,
+      title: `${m.title} · ${groupOf(m) === "options" ? OPTIONS_PROJECT.name : groupOf(m) === "transactions" ? TX_PROJECT.name : SITE.name}`,
       description: m.summary,
       url: `/methodology/${m.slug}`,
     },
@@ -51,7 +51,9 @@ export default async function MethodPage(props: PageProps<"/methodology/[slug]">
   const app =
     group === "options"
       ? { name: OPTIONS_PROJECT.name, url: `${SITE.origin}${SITE.basePath}${OPTIONS_PROJECT.href}` }
-      : { name: SITE.name, url: `${SITE.origin}${SITE.basePath}` };
+      : group === "transactions"
+        ? { name: TX_PROJECT.name, url: `${SITE.origin}${SITE.basePath}${TX_PROJECT.href}` }
+        : { name: SITE.name, url: `${SITE.origin}${SITE.basePath}` };
   return (
     <div className="container">
       <JsonLd
@@ -134,7 +136,13 @@ export default async function MethodPage(props: PageProps<"/methodology/[slug]">
             ))}
           </ul>
           <p className="small">
-            {group === "options" ? <Link href="/options">Try it in the options pricer</Link> : <Link href="/explore">See it on a portfolio</Link>}
+            {group === "options" ? (
+              <Link href="/options">Try it in the options pricer</Link>
+            ) : group === "transactions" ? (
+              <Link href="/transactions">Try it in the categorizer</Link>
+            ) : (
+              <Link href="/explore">See it on a portfolio</Link>
+            )}
           </p>
         </article>
       </div>
