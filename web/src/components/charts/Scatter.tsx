@@ -160,7 +160,7 @@ export function Scatter({ x, y, lines = [], format, xLabel, yLabel, ariaLabel, r
                 </text>
               </>
             )}
-            <path d={dots} fill="var(--series-1)" fillOpacity={opacity} stroke="none" />
+            <path d={dots} className="scatter-dots" fill="var(--series-1)" style={{ fillOpacity: `calc(${opacity} * var(--dot-scale, 1))` }} stroke="none" />
             {lines.map((l, k) => (
               <path key={l.id} d={paths[k]} fill="none" stroke={l.color} strokeWidth={l.width ?? 2} strokeDasharray={l.dash} strokeLinecap="round" />
             ))}

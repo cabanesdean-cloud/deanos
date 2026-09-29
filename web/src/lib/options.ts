@@ -104,6 +104,14 @@ export function money(v: number | null | undefined): string {
   return v < 0 ? "−" + s : s;
 }
 
+/** A difference between two prices shown in cents: cents when it is 10 cents or more, so it matches the rounded prices. */
+export function moneyDiff(v: number | null | undefined): string {
+  if (!isNum(v)) return "n/a";
+  if (Math.abs(v) < 0.1) return money(v);
+  const s = "$" + Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return v < 0 ? "−" + s : s;
+}
+
 export function signedMoney(v: number | null | undefined): string {
   if (!isNum(v)) return "n/a";
   return (v > 0 ? "+" : "") + money(v);

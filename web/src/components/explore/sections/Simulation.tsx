@@ -9,7 +9,7 @@ import { Segmented } from "@/components/ui/Controls";
 import { Legend } from "@/components/ui/Legend";
 import { Stat, StatGrid } from "@/components/ui/Stat";
 import { apiUrl } from "@/lib/api";
-import { num, pct, usd } from "@/lib/format";
+import { pct, plural, usd } from "@/lib/format";
 import type { Simulation } from "@/lib/types";
 
 import type { SectionProps } from "../Explorer";
@@ -90,7 +90,7 @@ export function SimulationSection({ spec }: SectionProps) {
               caption={
                 <>
                   Assumptions: {d.assumptions.method}, {d.assumptions.block_days}-day blocks, drawn from{" "}
-                  {num(d.assumptions.sample_years, 1)} years of history ({d.assumptions.sample_start.slice(0, 4)} to{" "}
+                  {plural(Math.round(d.assumptions.sample_years * 10) / 10, "year")} of history ({d.assumptions.sample_start.slice(0, 4)} to{" "}
                   {d.assumptions.sample_end.slice(0, 4)}), {d.assumptions.mean_mode === "zero" ? "average daily return set to zero" : "historical average return"}, rebalanced {d.assumptions.rebalancing}.{" "}
                   {d.assumptions.notes.join(" ")}
                 </>

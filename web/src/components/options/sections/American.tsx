@@ -9,7 +9,7 @@ import { Segmented } from "@/components/ui/Controls";
 import { Legend } from "@/components/ui/Legend";
 import { Stat, StatGrid } from "@/components/ui/Stat";
 import { apiUrl } from "@/lib/api";
-import { apiParams, money, type PriceResult, signedMoney } from "@/lib/options";
+import { apiParams, money, moneyDiff, type PriceResult, signedMoney } from "@/lib/options";
 
 import type { OptionSectionProps } from "../OptionsExplorer";
 import { logLabel, logTicks } from "./shared";
@@ -51,7 +51,7 @@ export function AmericanSection({ inputs }: OptionSectionProps) {
             answer={
               premium >= 0.005 ? (
                 <>
-                  The right to exercise early is worth {money(premium >= 0.1 ? Math.round(premium * 100) / 100 : premium)} here: the American {inputs.type} costs{" "}
+                  The right to exercise early is worth {moneyDiff(premium)} here: the American {inputs.type} costs{" "}
                   {money(t.american)} against {money(t.european)} for the European one on the same {t.steps}-step tree.
                 </>
               ) : noDividendCall ? (

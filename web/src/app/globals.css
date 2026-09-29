@@ -2270,3 +2270,12 @@ a.chip {
     display: inline;
   }
 }
+/* Dense scatter points need more opacity to show on a dark background. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --dot-scale: 2;
+  }
+}
+:root[data-theme="dark"] {
+  --dot-scale: 2;
+}

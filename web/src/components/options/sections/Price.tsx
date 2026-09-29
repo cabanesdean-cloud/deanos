@@ -8,7 +8,7 @@ import { Legend } from "@/components/ui/Legend";
 import { Stat, StatGrid } from "@/components/ui/Stat";
 import { apiUrl } from "@/lib/api";
 import { pct } from "@/lib/format";
-import { apiParams, describeOption, money, type MonteCarloResult, type PriceResult, signedMoney, yearsLabel } from "@/lib/options";
+import { apiParams, describeOption, money, moneyDiff, type MonteCarloResult, type PriceResult, signedMoney, yearsLabel } from "@/lib/options";
 
 import type { OptionSectionProps } from "../OptionsExplorer";
 import { nearestIndex } from "./shared";
@@ -72,7 +72,7 @@ export function PriceSection({ inputs }: OptionSectionProps) {
                 premium >= 0.005 ? (
                   <>
                     This American {inputs.type} is worth about {money(headline)} on a {tree.steps}-step binomial tree,{" "}
-                    {money(premium)} more than the European version, because it can be exercised before expiry.
+                    {moneyDiff(premium)} more than the European version, because it can be exercised before expiry.
                   </>
                 ) : (
                   <>
