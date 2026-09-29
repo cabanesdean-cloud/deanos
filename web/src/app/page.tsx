@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { preload } from "react-dom";
 
 import { HeroFan } from "@/components/landing/HeroFan";
+import { DEFAULT_SPEC } from "@/lib/portfolio";
 import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -9,6 +11,9 @@ export const metadata: Metadata = {
 };
 
 export default function Home() {
+  // Start the live chart's request with the HTML instead of after hydration,
+  // so a first visit on a phone shows the chart sooner. Same URL as HeroFan's.
+  preload(`/deanos/api/simulation?${new URLSearchParams({ p: DEFAULT_SPEC })}`, { as: "fetch", crossOrigin: "anonymous" });
   return (
     <div className="container">
       <section className="hero">
@@ -27,6 +32,15 @@ export default function Home() {
             Build your own
           </Link>
         </div>
+        {/* Phones only: the other projects, one tap from the first screen (the header menu has them on desktop). */}
+        <nav className="hero__projects" aria-label="More projects">
+          <Link href="/options">
+            Options Pricing <span aria-hidden>→</span>
+          </Link>
+          <Link href="/transactions">
+            Transaction ML <span aria-hidden>→</span>
+          </Link>
+        </nav>
         <p className="hero__not">
           It describes the past and the assumptions of each model. It is not investment advice, and it does not
           predict returns.

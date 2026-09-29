@@ -5,7 +5,8 @@ import Link from "next/link";
 import { horizonLabel, horizonTicks } from "@/components/charts/axes";
 import { LineChart } from "@/components/charts/LineChart";
 import { Legend } from "@/components/ui/Legend";
-import { Notice, Skeleton } from "@/components/ui/States";
+import { Notice } from "@/components/ui/States";
+import { useMediaQuery } from "@/components/ui/useMediaQuery";
 import { apiUrl, useApi } from "@/lib/api";
 import { pct, usd } from "@/lib/format";
 import { DEFAULT_SPEC } from "@/lib/portfolio";
@@ -14,6 +15,9 @@ import type { Simulation } from "@/lib/types";
 /** The landing page's live example: one year of simulated outcomes for the Balanced demo. */
 export function HeroFan() {
   const res = useApi<Simulation>(apiUrl("simulation", { p: DEFAULT_SPEC }));
+  // Shorter on phones so the chart sits on the first screen with the entry points.
+  const phone = useMediaQuery("(max-width: 767px)");
+  const height = phone ? 232 : 340;
 
   if (res.status === "error")
     return (
@@ -22,7 +26,8 @@ export function HeroFan() {
         <Link href="/methodology">read how the models work</Link>.
       </Notice>
     );
-  if (res.status === "loading") return <Skeleton height={340} />;
+  // Sized in CSS (.hero-skeleton) so the server-rendered placeholder is right on phones too.
+  if (res.status === "loading") return <div className="skeleton hero-skeleton" aria-hidden />;
 
   const s = res.data;
   const f = s.fan;
@@ -55,7 +60,7 @@ export function HeroFan() {
         ]}
         refLines={[{ value: s.start_value, label: "Starting value" }]}
         yFormat={(v) => usd(v)}
-        height={340}
+        height={height}
         ariaLabel={`Fan chart of simulated portfolio value over one year. Median ends at ${usd(s.final.p50)}; 90% of paths end between ${usd(s.final.p5)} and ${usd(s.final.p95)}.`}
         readout={(i) => (
           <>
