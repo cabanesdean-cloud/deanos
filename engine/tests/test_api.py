@@ -134,3 +134,99 @@ def test_unexpected_errors_hide_internals(monkeypatch: pytest.MonkeyPatch) -> No
     assert resp.status_code == 500
     assert "secret" not in resp.text and "/some/path" not in resp.text
     assert resp.headers["cache-control"] == "no-store"
+
+
+# ─── Options pricing ────────────────────────────────────────────────────────────
+
+OPT = {"s": 100, "k": 105, "t": 0.5, "r": 0.04, "q": 0.01, "sigma": 0.25, "type": "put"}
+
+
+@pytest.mark.parametrize(
+    ("path", "params", "keys"),
+    [
+        ("options/price", OPT, {"black_scholes", "binomial", "curves", "intrinsic"}),
+        ("options/montecarlo", OPT, {"estimate", "plain", "convergence", "variance_reduction"}),
+        ("options/asian", OPT, {"estimate", "geometric_closed_form", "convergence"}),
+        ("options/implied-vol", {**OPT, "price": 8.0}, {"sigma", "curve", "bounds"}),
+        ("options/validation", {}, {"textbook", "monte_carlo", "binomial", "implied_vol"}),
+    ],
+)
+def test_options_endpoints(path: str, params: dict[str, object], keys: set[str]) -> None:
+    set_snapshot(None)  # options pricing needs no market data
+    resp = client.get(f"{BASE}/{path}", params=params)
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert keys <= set(body)
+    assert "s-maxage" in resp.headers["cache-control"]
+    assert resp.headers["x-content-type-options"] == "nosniff"
+    assert "not investment advice" in body["disclaimer"]
+
+
+def test_options_price_is_consistent() -> None:
+    body = client.get(f"{BASE}/options/price", params=OPT).json()
+    bs = body["black_scholes"]
+    assert abs(bs["parity_gap"]) < 1e-6
+    assert bs["price"] == bs["put"]
+    b = body["binomial"]
+    assert b["american"] >= b["european"]
+    assert abs(b["european"] - bs["price"]) < 0.02
+    assert b["early_exercise_premium"] >= 0
+    assert len(body["curves"]["spot"]) == len(body["curves"]["american"])
+
+
+def test_options_montecarlo_agrees_with_black_scholes() -> None:
+    body = client.get(f"{BASE}/options/montecarlo", params={**OPT, "paths": 50_000}).json()
+    lo, hi = body["estimate"]["ci95"]
+    assert (
+        abs(body["estimate"]["price"] - body["black_scholes"]) < 4 * body["estimate"]["std_error"]
+    )
+    assert lo < body["estimate"]["price"] < hi
+    assert body["estimate"]["paths"] == 50_000
+
+
+def test_options_implied_vol_round_trip() -> None:
+    price = client.get(f"{BASE}/options/price", params=OPT).json()["black_scholes"]["price"]
+    iv = client.get(f"{BASE}/options/implied-vol", params={**OPT, "price": price}).json()
+    assert abs(iv["sigma"] - 0.25) < 1e-5
+
+
+@pytest.mark.parametrize(
+    ("path", "params", "fragment"),
+    [
+        ("options/implied-vol", {**OPT, "price": 0.001, "type": "call", "s": 150}, "below"),
+        ("options/implied-vol", {**OPT, "price": 500}, "above"),
+        ("options/implied-vol", {**OPT, "price": 5, "t": 0}, "time"),
+        ("options/asian", {**OPT, "paths": 100_000, "obs": 1260}, "at most"),
+    ],
+)
+def test_options_bad_combinations_are_400(
+    path: str, params: dict[str, object], fragment: str
+) -> None:
+    resp = client.get(f"{BASE}/{path}", params=params)
+    assert resp.status_code == 400, resp.text
+    assert fragment in resp.json()["error"]
+
+
+@pytest.mark.usefixtures("installed_snapshot")
+def test_options_historical_vol() -> None:
+    resp = client.get(f"{BASE}/options/historical-vol", params={"ticker": "spy"})
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["ticker"] == "SPY"
+    assert 0.05 < body["realized_vol"]["3m"] < 1.0
+    assert body["as_of"] == "2026-09-25"
+    assert (
+        client.get(f"{BASE}/options/historical-vol", params={"ticker": "ZZZZ"}).status_code == 400
+    )
+    # Listed in 2026: not enough history for one year, enough for three months.
+    ccc = client.get(f"{BASE}/options/historical-vol", params={"ticker": "CCC"}).json()
+    assert ccc["realized_vol"]["1y"] is None
+
+
+def test_options_historical_vol_without_data(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:  # type: ignore[no-untyped-def]
+    set_snapshot(None)
+    monkeypatch.setenv("DEANOS_DATA_PATH", str(tmp_path / "missing.npz"))
+    resp = client.get(f"{BASE}/options/historical-vol", params={"ticker": "SPY"})
+    assert resp.status_code == 503
+    # Pricing itself keeps working without market data.
+    assert client.get(f"{BASE}/options/price", params=OPT).status_code == 200

@@ -28,7 +28,17 @@ from deanos_engine import __version__
 from deanos_engine._json import clean
 from deanos_engine.data import DataUnavailableError, Snapshot, get_snapshot
 from deanos_engine.demos import DEMOS, spec
-from deanos_engine.models import compare, factors, garch, metrics, montecarlo, regime, stress, var
+from deanos_engine.models import (
+    compare,
+    factors,
+    garch,
+    metrics,
+    montecarlo,
+    options,
+    regime,
+    stress,
+    var,
+)
 from deanos_engine.portfolio import (
     TRADING_DAYS,
     PortfolioData,
@@ -43,6 +53,8 @@ CACHE_HEADER = "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400
 BENCHMARKS = ("SPY", "QQQ", "AGG")
 # paths x horizon bound: each simulated day is ~8 bytes in several working arrays.
 MAX_SIM_CELLS = 5_000_000
+# Asian option paths x averaging dates; each cell is simulated twice (antithetic).
+MAX_OPTION_CELLS = 2_000_000
 
 app = FastAPI(
     title="DeanOS engine",
@@ -91,6 +103,11 @@ Years = Annotated[int, Query(ge=2, le=26)]
 
 @app.exception_handler(PortfolioError)
 async def _portfolio_error(_: Request, exc: PortfolioError) -> JSONResponse:
+    return JSONResponse(status_code=400, content={"error": str(exc)})
+
+
+@app.exception_handler(options.OptionsError)
+async def _options_error(_: Request, exc: options.OptionsError) -> JSONResponse:
     return JSONResponse(status_code=400, content={"error": str(exc)})
 
 
@@ -371,6 +388,202 @@ def compare_portfolios(
         )
     )
     return _respond(response, body, snap)
+
+
+# ─── Options pricing ────────────────────────────────────────────────────────────
+# Pure functions of the query string: no market data, so no snapshot is needed
+# (except to seed volatility from a ticker's history).
+
+Spot = Annotated[float, Query(gt=0, le=1_000_000, description="Spot price of the underlying.")]
+Strike = Annotated[float, Query(gt=0, le=1_000_000, description="Strike price.")]
+Expiry = Annotated[float, Query(ge=0, le=30, description="Time to expiry in years.")]
+Rate = Annotated[float, Query(ge=-0.1, le=0.5, description="Risk-free rate, continuous, decimal.")]
+Yield = Annotated[float, Query(ge=-0.1, le=0.5, description="Dividend yield, continuous, decimal.")]
+Vol = Annotated[float, Query(ge=0, le=5, description="Annual volatility, decimal.")]
+Kind = Annotated[Literal["call", "put"], Query(alias="type")]
+Seed = Annotated[int, Query(ge=0, le=2**31 - 1)]
+OPTION_DP = 8
+
+
+def _respond_options(response: Response, body: dict[str, Any]) -> dict[str, Any]:
+    response.headers["Cache-Control"] = CACHE_HEADER
+    body["engine_version"] = __version__
+    body["disclaimer"] = "Educational model output under stated assumptions; not investment advice."
+    out: dict[str, Any] = clean(body, dp=OPTION_DP)
+    return out
+
+
+def _inputs(
+    s: float, k: float, t: float, r: float, q: float, sigma: float, kind: str
+) -> dict[str, Any]:
+    return {"s": s, "k": k, "t": t, "r": r, "q": q, "sigma": sigma, "type": kind}
+
+
+@router.get("/options/price")
+def option_price(
+    response: Response,
+    s: Spot = 100.0,
+    k: Strike = 100.0,
+    t: Expiry = 1.0,
+    r: Rate = 0.04,
+    q: Yield = 0.0,
+    sigma: Vol = 0.2,
+    kind: Kind = "call",
+    steps: Annotated[int, Query(ge=1, le=5000)] = 500,
+) -> dict[str, Any]:
+    """Black-Scholes-Merton price and Greeks, binomial European and American prices, curves."""
+
+    def run() -> dict[str, Any]:
+        args = (s, k, t, r, q, sigma)
+        call = options.bs_price(*args, "call")
+        put = options.bs_price(*args, "put")
+        bs = call if kind == "call" else put
+        eu_tree = options.binomial_price(*args, kind, steps, american=False)
+        am_tree = options.binomial_price(*args, kind, steps, american=True)
+        conv = options.binomial_convergence(*args, kind, max_steps=min(steps, 1000))
+        return {
+            "inputs": {**_inputs(*args, kind), "steps": steps},
+            "black_scholes": {
+                "price": bs,
+                "call": call,
+                "put": put,
+                "parity_gap": options.parity_gap(s, k, t, r, q, call, put),
+                "greeks": options.bs_greeks(*args, kind),
+                "prob_itm": options.prob_in_the_money(*args, kind),
+            },
+            "intrinsic": options.intrinsic(s, k, kind),
+            "time_value": bs - options.intrinsic(s, k, kind),
+            "binomial": {
+                "steps": steps,
+                "european": eu_tree,
+                "american": am_tree,
+                # Measured on the same tree so discretization error cancels.
+                "early_exercise_premium": max(am_tree - eu_tree, 0.0),
+                "convergence": {**conv, "black_scholes": bs},
+            },
+            "curves": options.value_curves(*args, kind),
+        }
+
+    return _respond_options(response, _timed(run))
+
+
+@router.get("/options/montecarlo")
+def option_montecarlo(
+    response: Response,
+    s: Spot = 100.0,
+    k: Strike = 100.0,
+    t: Expiry = 1.0,
+    r: Rate = 0.04,
+    q: Yield = 0.0,
+    sigma: Vol = 0.2,
+    kind: Kind = "call",
+    paths: Annotated[int, Query(ge=1000, le=200_000)] = 20_000,
+    seed: Seed = 42,
+) -> dict[str, Any]:
+    """European price by Monte Carlo with antithetic variates and a control variate."""
+    body = _timed(
+        lambda: {
+            "inputs": _inputs(s, k, t, r, q, sigma, kind),
+            **options.mc_european(s, k, t, r, q, sigma, kind, n_paths=paths, seed=seed),
+        }
+    )
+    return _respond_options(response, body)
+
+
+@router.get("/options/asian")
+def option_asian(
+    response: Response,
+    s: Spot = 100.0,
+    k: Strike = 100.0,
+    t: Expiry = 1.0,
+    r: Rate = 0.04,
+    q: Yield = 0.0,
+    sigma: Vol = 0.2,
+    kind: Kind = "call",
+    obs: Annotated[int, Query(ge=1, le=1260, description="Averaging dates.")] = 52,
+    paths: Annotated[int, Query(ge=1000, le=100_000)] = 20_000,
+    seed: Seed = 42,
+) -> dict[str, Any]:
+    """Arithmetic-average Asian option by Monte Carlo (no closed form exists)."""
+    if paths * obs > MAX_OPTION_CELLS:
+        raise options.OptionsError(
+            f"paths x averaging dates must be at most {MAX_OPTION_CELLS:,}; reduce one of them."
+        )
+    body = _timed(
+        lambda: {
+            "inputs": {**_inputs(s, k, t, r, q, sigma, kind), "obs": obs},
+            **options.mc_asian(s, k, t, r, q, sigma, kind, n_obs=obs, n_paths=paths, seed=seed),
+        }
+    )
+    return _respond_options(response, body)
+
+
+@router.get("/options/implied-vol")
+def option_implied_vol(
+    response: Response,
+    price: Annotated[float, Query(ge=0, le=1_000_000, description="Observed option price.")],
+    s: Spot = 100.0,
+    k: Strike = 100.0,
+    t: Expiry = 1.0,
+    r: Rate = 0.04,
+    q: Yield = 0.0,
+    kind: Kind = "call",
+) -> dict[str, Any]:
+    """Volatility implied by an observed European option price."""
+
+    def run() -> dict[str, Any]:
+        res = options.implied_vol(price, s, k, t, r, q, kind)
+        top = max(1.5, min(5.0, res["sigma"] * 1.5))
+        return {
+            "inputs": {"price": price, "s": s, "k": k, "t": t, "r": r, "q": q, "type": kind},
+            **res,
+            "curve": options.price_vs_vol(s, k, t, r, q, kind, sigma_max=top),
+        }
+
+    return _respond_options(response, _timed(run))
+
+
+@router.get("/options/historical-vol")
+def option_historical_vol(
+    response: Response,
+    ticker: Annotated[str, Query(min_length=1, max_length=12, pattern=r"^[A-Za-z0-9.-]+$")],
+) -> dict[str, Any]:
+    """Realized volatility of a ticker from the nightly snapshot, to seed sigma."""
+    sym = ticker.strip().upper()
+    snap = get_snapshot()
+    if sym not in snap.prices.columns:
+        raise options.OptionsError(f"{sym} is not in the data set.")
+    series = snap.prices[sym].dropna()
+    closes = series.to_numpy(dtype=float)
+    vols = {}
+    for label, window in (("1m", 21), ("3m", 63), ("1y", 252)):
+        vols[label] = options.realized_vol(closes, window) if len(closes) > window else None
+    if vols["3m"] is None:
+        raise options.OptionsError(f"{sym} has too little history for a 3-month volatility.")
+    body = {
+        "ticker": sym,
+        "name": snap.universe.get(sym, {}).get("name"),
+        "last_close": float(closes[-1]),
+        "last_date": str(series.index[-1].date()),
+        "realized_vol": vols,
+        "note": "Annualized standard deviation of daily log returns of adjusted closes.",
+    }
+    return _respond(response, body, snap)
+
+
+@router.get("/options/validation")
+def option_validation(response: Response) -> dict[str, Any]:
+    """Textbook checks and statistical validation, recomputed by the running engine."""
+    return _respond_options(response, _timed(_validation_cached))
+
+
+_VALIDATION: dict[str, Any] = {}
+
+
+def _validation_cached() -> dict[str, Any]:
+    if not _VALIDATION:
+        _VALIDATION.update(options.validation_report())
+    return dict(_VALIDATION)
 
 
 app.include_router(router)

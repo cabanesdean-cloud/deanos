@@ -136,3 +136,109 @@ def test_api_fuzz_never_500(pairs: list[tuple[str, str]]) -> None:
     spec = ",".join(f"{t}:{w}" for t, w in pairs)
     resp = client.get(f"{BASE}/overview", params={"p": spec})
     assert resp.status_code in (200, 400, 422), (spec, resp.text)
+
+
+# ─── Options pricing: hostile and edge inputs ───────────────────────────────────
+
+OPT_BASE = {"s": 100, "k": 100, "t": 1, "r": 0.04, "q": 0.0, "sigma": 0.2, "type": "call"}
+OPTION_PATHS = ["options/price", "options/montecarlo", "options/asian"]
+
+
+@pytest.mark.parametrize("path", OPTION_PATHS)
+@pytest.mark.parametrize(
+    "edge",
+    [
+        {"t": 0},
+        {"t": 1e-9},
+        {"sigma": 0},
+        {"sigma": 1e-9},
+        {"sigma": 5, "t": 30},
+        {"s": 1_000_000, "k": 0.01},
+        {"s": 0.01, "k": 1_000_000, "type": "put"},
+        {"r": -0.1, "q": 0.5, "type": "put"},
+        {"r": 0.5, "sigma": 0.001},
+    ],
+)
+def test_option_edges_are_finite(path: str, edge: dict[str, object]) -> None:
+    resp = client.get(f"{BASE}/{path}", params={**OPT_BASE, **edge, "paths": 2000})
+    assert resp.status_code == 200, resp.text
+    _finite_or_none(resp.json())
+
+
+OUT_OF_RANGE: list[dict[str, object]] = [
+    {"s": 0},
+    {"s": -5},
+    {"s": 1e308},
+    {"s": "nan"},
+    {"k": "inf"},
+    {"t": -1},
+    {"t": 31},
+    {"sigma": -0.1},
+    {"sigma": 50},
+    {"r": 2},
+    {"type": "straddle"},
+    {"s": "1e400"},
+    {"s": "<script>"},
+]
+
+
+@pytest.mark.parametrize(
+    ("path", "bad"),
+    [
+        (path, bad)
+        for path in [*OPTION_PATHS, "options/implied-vol"]
+        for bad in OUT_OF_RANGE
+        # The implied-volatility endpoint takes a price instead of a volatility.
+        if not (path == "options/implied-vol" and "sigma" in bad)
+    ],
+)
+def test_option_out_of_range_is_422(path: str, bad: dict[str, object]) -> None:
+    resp = client.get(f"{BASE}/{path}", params={**OPT_BASE, "price": 5, **bad})
+    assert resp.status_code == 422, resp.text
+    assert "<script>" not in resp.text
+
+
+@pytest.mark.parametrize(
+    ("path", "bad"),
+    [
+        ("options/price", {"steps": 0}),
+        ("options/price", {"steps": 5001}),
+        ("options/montecarlo", {"paths": 10}),
+        ("options/montecarlo", {"paths": 10_000_000}),
+        ("options/montecarlo", {"seed": -1}),
+        ("options/asian", {"obs": 0}),
+        ("options/implied-vol", {"price": -1}),
+        ("options/historical-vol", {"ticker": "../etc"}),
+        ("options/historical-vol", {"ticker": "A" * 40}),
+    ],
+)
+def test_option_size_limits_are_422(path: str, bad: dict[str, object]) -> None:
+    resp = client.get(f"{BASE}/{path}", params={**OPT_BASE, "price": 5, **bad})
+    assert resp.status_code == 422, resp.text
+
+
+finite_or_junk = st.one_of(
+    st.floats(allow_nan=True, allow_infinity=True, width=64).map(repr),
+    st.integers(-10, 10**7).map(str),
+    st.text(max_size=6),
+)
+
+
+@given(
+    st.fixed_dictionaries(
+        {
+            "s": finite_or_junk,
+            "k": finite_or_junk,
+            "t": finite_or_junk,
+            "sigma": finite_or_junk,
+            "price": finite_or_junk,
+        }
+    ),
+    st.sampled_from(["options/price", "options/implied-vol", "options/montecarlo"]),
+)
+@settings(max_examples=150, deadline=None)
+def test_option_fuzz_never_500(params: dict[str, str], path: str) -> None:
+    resp = client.get(f"{BASE}/{path}", params={**params, "paths": "1000", "steps": "50"})
+    assert resp.status_code in (200, 400, 422), (params, resp.text)
+    if resp.status_code == 200:
+        _finite_or_none(resp.json())
