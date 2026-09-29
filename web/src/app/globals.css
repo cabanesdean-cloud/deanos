@@ -1380,7 +1380,8 @@ dl.facts dd {
 }
 .tx-tokens__value {
   font-size: var(--t-13);
-  color: var(--fg-2);
+  /* Full-strength text: the secondary gray fails contrast on the most strongly shaded tokens. */
+  color: var(--fg);
   font-variant-numeric: tabular-nums;
 }
 .tx-desc-cell {
