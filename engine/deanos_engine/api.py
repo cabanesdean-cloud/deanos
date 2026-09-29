@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import logging
 import platform
+import re
 import time
 from collections.abc import Callable
 from importlib.metadata import version
@@ -29,6 +30,7 @@ from deanos_engine._json import clean
 from deanos_engine.data import DataUnavailableError, Snapshot, get_snapshot
 from deanos_engine.demos import DEMOS, spec
 from deanos_engine.models import (
+    beta,
     compare,
     factors,
     garch,
@@ -45,6 +47,7 @@ from deanos_engine.portfolio import (
     PortfolioData,
     PortfolioError,
     align,
+    normalize_ticker,
     parse_portfolio,
     prepare,
 )
@@ -114,6 +117,11 @@ async def _options_error(_: Request, exc: options.OptionsError) -> JSONResponse:
 
 @app.exception_handler(transactions.TransactionsError)
 async def _transactions_error(_: Request, exc: transactions.TransactionsError) -> JSONResponse:
+    return JSONResponse(status_code=400, content={"error": str(exc)})
+
+
+@app.exception_handler(beta.BetaError)
+async def _beta_error(_: Request, exc: beta.BetaError) -> JSONResponse:
     return JSONResponse(status_code=400, content={"error": str(exc)})
 
 
@@ -394,6 +402,65 @@ def compare_portfolios(
         )
     )
     return _respond(response, body, snap)
+
+
+# ─── Nonlinear Beta Tracker ─────────────────────────────────────────────────────
+
+_BETA_TICKER_RE = re.compile(r"^[A-Z][A-Z0-9\-]{0,9}$")
+TickerQuery = Annotated[str, Query(min_length=1, max_length=12)]
+
+
+def _beta_ticker(snap: Snapshot, raw: str, role: str) -> str:
+    t = normalize_ticker(raw)
+    if not _BETA_TICKER_RE.match(t):
+        raise beta.BetaError(f"The {role} must be a ticker symbol, like NVDA or SPY.")
+    if t not in snap.prices.columns:
+        raise beta.BetaError(
+            f"{t} is not in the data universe (S&P 500 stocks plus major ETFs). "
+            "Pick a ticker from the list."
+        )
+    return t
+
+
+@router.get("/beta")
+def beta_tracker(
+    response: Response,
+    asset: TickerQuery = "NVDA",
+    benchmark: TickerQuery = "SPY",
+    lookback: Literal["6M", "1Y", "3Y", "5Y", "10Y", "max"] = "5Y",
+    freq: Literal["daily", "weekly", "monthly"] = "daily",
+    ret: Literal["log", "simple"] = "log",
+    window: Annotated[int, Query(ge=10, le=504)] = 60,
+    winsorize: bool = False,
+) -> dict[str, Any]:
+    """Linear and state-dependent beta of one asset against a benchmark (Nonlinear Beta Tracker)."""
+    snap = get_snapshot()
+    a = _beta_ticker(snap, asset, "asset")
+    b = _beta_ticker(snap, benchmark, "benchmark")
+    if a == b:
+        raise beta.BetaError("Pick a benchmark that is different from the asset.")
+
+    def run() -> dict[str, Any]:
+        dates, ra, rb, info = beta.period_returns(
+            snap.prices[a], snap.prices[b], frequency=freq, return_type=ret, lookback=lookback
+        )
+        result = beta.analyze(
+            ra, rb, dates, frequency=freq, rolling_window=window, do_winsorize=winsorize
+        )
+        info_a = snap.universe.get(a, {})
+        info_b = snap.universe.get(b, {})
+        return {
+            "asset": {"ticker": a, **info_a},
+            "benchmark": {"ticker": b, **info_b},
+            "data_quality": {
+                **info,
+                "price_basis": "adjusted closes (splits and dividends)",
+                "risk_free": "none (raw returns, as in the original tracker)",
+            },
+            **result,
+        }
+
+    return _respond(response, _timed(run), snap)
 
 
 # ─── Options pricing ────────────────────────────────────────────────────────────
