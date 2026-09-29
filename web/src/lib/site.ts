@@ -9,7 +9,7 @@ export const SITE = {
   homeUrl: null as string | null,
   basePath: "/deanos",
   /** Set once the public repository exists; the nav hides the link until then. */
-  githubUrl: null as string | null,
+  githubUrl: "https://github.com/cabanesdean-cloud/deanos" as string | null,
 };
 
 export type ProjectLink = { name: string; href: string | null; current?: boolean };
