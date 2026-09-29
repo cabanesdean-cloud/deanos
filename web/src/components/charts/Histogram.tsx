@@ -3,6 +3,7 @@
 import { scaleLinear } from "d3-scale";
 import { useState } from "react";
 
+import { ReadHint } from "./ReadHint";
 import { useWidth } from "./useWidth";
 
 /** Vertical-bar histogram with optional labeled marker lines. */
@@ -50,10 +51,7 @@ export function Histogram({
             <b style={{ color: "var(--fg)", fontWeight: 500 }}>{((counts[hover] / total) * 100).toFixed(1)}%</b> of outcomes
           </span>
         ) : (
-          <span className="faint">
-            <span className="hint-hover">Hover a bar to read it</span>
-            <span className="hint-touch">Tap or drag across the bars to read them</span>
-          </span>
+          <ReadHint hover="Hover a bar to read it" touch="Tap a bar to read it" both="Hover or tap a bar to read it" />
         )}
       </div>
       {width > 0 ? (

@@ -87,6 +87,23 @@ export function monthYear(iso: string | null | undefined): string {
   return `${MONTHS[m - 1]} ${y}`;
 }
 
+/**
+ * A number for running text: at most ``digits`` decimals, trailing zeros
+ * dropped. 10.0 -> "10", 10.5 -> "10.5", 1234.25 -> "1,234.3".
+ */
+export function trimNum(v: number | null | undefined, digits = 1): string {
+  if (!isNum(v)) return "n/a";
+  const f = new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: digits });
+  return sign(f.format(v));
+}
+
+/** "1 day", "2 days"; the count as written by trimNum. */
+export function plural(count: number, one: string, many = one + "s", digits = 1): string {
+  const s = trimNum(count, digits);
+  return `${s} ${s === "1" ? one : many}`;
+}
+
+/** Trading days as years for running text: 2520 -> "10 years", 2646 -> "10.5 years", 252 -> "1 year". */
 export function years(tradingDays: number): string {
-  return num(tradingDays / 252, 1) + " years";
+  return plural(Math.round((tradingDays / 252) * 10) / 10, "year");
 }

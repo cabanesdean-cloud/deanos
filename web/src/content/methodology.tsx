@@ -25,7 +25,7 @@ export type ValidationKind =
   | null;
 
 /** Which project a model belongs to: the portfolio engine, the options pricer or the transaction categorizer. */
-export type MethodGroup = "portfolio" | "options" | "transactions";
+export type MethodGroup = "beta" | "portfolio" | "options" | "transactions";
 
 export type Method = {
   slug: string;
@@ -49,6 +49,101 @@ export type Method = {
 };
 
 export const METHODS: Method[] = [
+  {
+    slug: "beta-tracker",
+    group: "beta",
+    title: "Nonlinear Beta Tracker: linear, quadratic and conditional beta",
+    short: "Beta Tracker",
+    summary:
+      "How an asset's sensitivity to a benchmark is estimated three ways: one straight-line beta, the slope of a quadratic fit at each benchmark move, and separate betas by benchmark-return bucket and volatility regime.",
+    what: (
+      <>
+        <p>
+          The tracker regresses an asset&apos;s returns on a benchmark&apos;s returns over the same dates. A straight
+          line gives the conventional beta: the average move in the asset per 1% move in the benchmark. A quadratic
+          fit lets that relationship bend, so the sensitivity can differ between large down moves, small moves and
+          large up moves. Bucket and volatility-regime betas estimate a separate straight line within slices of the
+          sample.
+        </p>
+        <p>
+          This is the method of Dean&apos;s original Nonlinear Beta Tracker, a standalone web app and his first
+          project, kept as it was defined there. The changes listed below correct data alignment and uncertainty; none
+          changes what is being estimated.
+        </p>
+      </>
+    ),
+    why: (
+      <p>
+        A single beta assumes an asset reacts to a 3% market drop exactly as strongly as to a 3% rise. Many assets do
+        not, and the difference matters most when markets move sharply. The quadratic fit is the simplest model that
+        can show a changing sensitivity while staying easy to read and test.
+      </p>
+    ),
+    inputs: [
+      "One asset and one benchmark from the data universe (S&P 500 stocks and major ETFs). Default: NVDA against SPY, the original tracker's example.",
+      "Adjusted daily closes (splits and dividends included) from the nightly snapshot. Nothing is downloaded when the page runs.",
+      "Lookback: 6 months to the full shared history, counted back from the last date both tickers have prices. Default five years.",
+      "Return frequency: daily (default), weekly (Friday closes) or monthly (month-end closes). Return type: log (default, as in the original) or simple.",
+      "Rolling window for the time-varying estimate: 30, 60 (default), 120 or 252 periods. Optional winsorizing of both series at the 1st and 99th percentiles.",
+    ],
+    formula:
+      "Linear:     r_a = α + β·r_m + ε\nQuadratic:  r_a = α + β₁·r_m + β₂·r_m² + ε\nSensitivity at a benchmark return x:  dr_a/dr_m = β₁ + 2·β₂·x\nBuckets:    r_a = α_k + β_k·r_m + ε   within each benchmark-return percentile band k",
+    assumptions: [
+      "Returns are raw, not in excess of a risk-free rate (the original's default). Over short horizons this barely changes the slope.",
+      "Only dates on which both tickers have a price are used. A daily return is formed only when both tickers also traded on the previous date; nothing is forward-filled.",
+      "The relationship is stable within the window. The rolling estimate and the first-half/second-half refits show how far that holds.",
+      "Standard errors are heteroskedasticity-robust (HC1), because daily return volatility changes over time. They do not correct for autocorrelation.",
+    ],
+    reading: (
+      <>
+        <p>
+          The scatter shows every period in the window: benchmark return across, asset return up. The straight line is
+          the conventional beta. The curve is the quadratic fit. Where the curve is steeper than the line, the asset has
+          been more sensitive; where it is flatter, less.
+        </p>
+        <p>
+          The quadratic coefficient β₂ is not itself a beta. It measures curvature: the sensitivity changes by 2·β₂ for
+          each unit of benchmark return. A positive β₂ means sensitivity rises with the benchmark&apos;s return (steeper
+          on up moves); a negative β₂ means it is steeper on down moves. When β₂&apos;s interval includes zero, the data
+          do not distinguish the curve from the straight line.
+        </p>
+        <p>
+          Bucket betas are conditional estimates: the slope within a narrow slice of benchmark returns. Separate up and
+          down slopes of this kind do not by themselves establish a nonlinear relationship, and because each slice
+          covers a narrow range of benchmark moves, their intervals are wide.
+        </p>
+      </>
+    ),
+    limitations: [
+      "Historical estimates change with the window. Try other lookbacks and the rolling view before reading much into one number.",
+      "Extreme benchmark moves are rare, so the ends of the curve and the outer buckets rest on few observations. The page marks sparse buckets and shows where each benchmark move sits in the data.",
+      "A few outliers can move a quadratic fit a lot. The diagnostics refit without the most extreme 1% of benchmark periods for comparison.",
+      "A better in-sample fit is not evidence of better predictions. The tracker makes no out-of-sample claim; the added R² is reported only to show how little or how much the curve adds.",
+      "Association is not causation, and historical sensitivity is not a forecast or a recommendation.",
+      "Daily returns of stocks and ETFs that trade at slightly different times can understate beta; weekly returns reduce that effect.",
+    ],
+    failures: [
+      "Too little shared history (fewer than max(30, rolling window + 10) periods): the page says how many periods it found and suggests a longer lookback or a higher frequency.",
+      "A benchmark that barely moved in the window: rejected rather than divided by a near-zero variance.",
+      "An asset and benchmark that are the same ticker, or a ticker outside the universe: rejected with a message.",
+      "A bucket with fewer than 5 observations is not estimated; fewer than 30 is flagged as sparse.",
+    ],
+    changes: [
+      "Return alignment. The original dropped each ticker's missing closes before differencing, so a gap in one series produced a multi-day return paired with a one-day benchmark return. Returns are now formed only between consecutive shared dates.",
+      "Uncertainty. The original reported classical OLS standard errors, which daily returns' changing volatility makes too narrow. Intervals are now HC1-robust; classical errors are still shown in the diagnostics.",
+      "Volatility regimes. The original's 21-period volatility included the current period's return, which sorts large-move days into the turbulent group by construction. It now uses volatility through the previous period.",
+      "The sensitivity curve covers the observed benchmark range (0.5th to 99.5th percentile) with a delta-method interval, instead of a fixed ±5% that could extrapolate far beyond the data.",
+      "Kept from the original: the linear and quadratic models, the effective-beta formula β₁ + 2β₂·x and its reporting points (−3% to +3%), the six percentile buckets, the median split on 21-period volatility, rolling estimates, winsorizing at 1%/99%, the minimum-sample rule, log returns and the NVDA-against-SPY example.",
+    ],
+    validation: null,
+    validationIntro: undefined,
+    references: [
+      "Kraus, A. and Litzenberger, R. (1976). Skewness preference and the valuation of risk assets. Journal of Finance 31(4).",
+      "Treynor, J. and Mazuy, K. (1966). Can mutual funds outguess the market? Harvard Business Review 44(4).",
+      "White, H. (1980). A heteroskedasticity-consistent covariance matrix estimator and a direct test for heteroskedasticity. Econometrica 48(4).",
+      "Dimson, E. (1979). Risk measurement when shares are subject to infrequent trading. Journal of Financial Economics 7(2).",
+    ],
+  },
   {
     slug: "data",
     title: "Data and portfolio construction",
@@ -1120,6 +1215,11 @@ Log loss = −(1/n) Σ_i ln P(true category of row i)`,
 ];
 
 export const METHOD_GROUPS: { id: MethodGroup; title: string; blurb: string }[] = [
+  {
+    id: "beta",
+    title: "Nonlinear Beta Tracker",
+    blurb: "How one asset's sensitivity to a benchmark is estimated: a straight line, a curve and its slope, and conditional betas.",
+  },
   {
     id: "portfolio",
     title: "DeanOS: portfolio models",

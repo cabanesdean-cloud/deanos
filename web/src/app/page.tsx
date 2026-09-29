@@ -10,6 +10,8 @@ export const metadata: Metadata = {
   alternates: { canonical: SITE_URL },
 };
 
+// DeanOS's own landing page (/deanos). The personal overview is at the domain root.
+
 export default function Home() {
   // Start the live chart's request with the HTML instead of after hydration,
   // so a first visit on a phone shows the chart sooner. Same URL as HeroFan's.
@@ -29,11 +31,14 @@ export default function Home() {
             Explore the demo
           </Link>
           <Link className="button" href="/explore?edit=1">
-            Build your own
+            Build a portfolio
           </Link>
         </div>
         {/* Phones only: the other projects, one tap from the first screen (the header menu has them on desktop). */}
         <nav className="hero__projects" aria-label="More projects">
+          <Link href="/beta">
+            Nonlinear Beta Tracker <span aria-hidden>→</span>
+          </Link>
           <Link href="/options">
             Options Pricing <span aria-hidden>→</span>
           </Link>

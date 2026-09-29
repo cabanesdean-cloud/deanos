@@ -14,7 +14,9 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const m = getMethod(slug);
   return ogImage({
     eyebrow:
-      m && groupOf(m) === "options"
+      m && groupOf(m) === "beta"
+        ? "Nonlinear Beta Tracker · Methodology"
+        : m && groupOf(m) === "options"
         ? "Options Pricing · Methodology"
         : m && groupOf(m) === "transactions"
           ? "Transaction ML · Methodology"

@@ -1456,7 +1456,9 @@ dl.facts dd {
  * (Apple HIG); form fields are 16 px so iOS Safari does not zoom on focus.
  */
 
-/* Hints that name the input method: "Hover" with a mouse, "Touch" on phones. */
+/* Hints that name the input method, chosen by input capability rather than width:
+   "Hover" with a mouse, "Tap" on touch-first devices, both on hybrids. */
+.hint-both,
 .hint-touch,
 .touch-only,
 .mobile-only {
@@ -1483,6 +1485,15 @@ dl.facts dd {
   textarea,
   label {
     touch-action: manipulation; /* no double-tap zoom on controls */
+  }
+}
+
+@media (hover: hover) and (any-pointer: coarse) {
+  .hint-hover {
+    display: none;
+  }
+  .hint-both {
+    display: inline;
   }
 }
 
@@ -1883,4 +1894,311 @@ dl.facts dd {
   .section-nav a:active {
     color: var(--fg);
   }
+}
+
+
+/* ─── Portfolio overview (domain root), projects, tracker ─────────────────── */
+
+.site-header__brands {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+}
+.site-header__brand--project {
+  font-weight: 500;
+  color: var(--fg-2);
+}
+.site-footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-5);
+}
+
+.eyebrow {
+  font-size: var(--t-13);
+  color: var(--fg-3);
+  letter-spacing: 0.01em;
+  margin-bottom: var(--s-2);
+}
+
+.home-hero {
+  display: grid;
+  gap: var(--s-8);
+  padding: var(--s-10) 0 var(--s-10);
+}
+@media (min-width: 900px) {
+  .home-hero {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    gap: var(--s-12);
+    align-items: start;
+    padding-top: var(--s-12);
+  }
+}
+.home-hero__name {
+  font-size: clamp(var(--t-32), 5vw, var(--t-44));
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+}
+.home-hero__lede {
+  margin-top: var(--s-4);
+  font-size: var(--t-20);
+  line-height: 1.45;
+  max-width: 34em;
+}
+.home-hero__sub {
+  margin-top: var(--s-3);
+  color: var(--fg-2);
+  max-width: 36em;
+}
+.home-hero .hero__actions {
+  margin-top: var(--s-6);
+}
+.contact-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-5);
+  list-style: none;
+  padding: 0;
+  margin: var(--s-5) 0 0;
+  font-size: var(--t-14);
+}
+
+.project-card {
+  border: var(--hairline);
+  border-radius: 8px;
+  padding: var(--s-5);
+  display: grid;
+  gap: var(--s-3);
+  align-content: start;
+  min-width: 0;
+}
+.project-card--featured {
+  background: var(--bg);
+}
+.project-card__name {
+  font-size: var(--t-20);
+  letter-spacing: -0.015em;
+}
+.project-card__name a {
+  color: var(--fg);
+  text-decoration: none;
+}
+.project-card__name a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.project-card__tagline {
+  display: block;
+  font-size: var(--t-14);
+  font-weight: 400;
+  color: var(--fg-2);
+  margin-top: 2px;
+}
+.project-card__question {
+  color: var(--fg-2);
+  max-width: 40em;
+}
+.project-card__links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-5);
+  margin-top: var(--s-1);
+}
+.project-card__method {
+  font-size: var(--t-14);
+}
+.project-card__starts {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--s-1);
+  font-size: var(--t-14);
+}
+.project-card__starts a::after {
+  content: " →";
+}
+.project-card--wide {
+  gap: var(--s-6);
+}
+@media (min-width: 900px) {
+  .project-card--wide {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    align-items: start;
+  }
+}
+.project-card__text {
+  display: grid;
+  gap: var(--s-3);
+  align-content: start;
+}
+.home-projects {
+  display: grid;
+  gap: var(--s-6);
+  padding: var(--s-8) 0;
+  border-top: var(--hairline);
+}
+.home-projects__pair {
+  display: grid;
+  gap: var(--s-6);
+}
+@media (min-width: 768px) {
+  .home-projects__pair {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.home-note {
+  padding: var(--s-4) 0 var(--s-12);
+  max-width: 62ch;
+}
+.preview-figure {
+  margin: 0;
+  display: grid;
+  gap: var(--s-2);
+}
+.preview-skeleton {
+  height: 220px;
+}
+
+.slow-note {
+  font-size: var(--t-14);
+  color: var(--fg-2);
+  min-height: 0;
+  margin: var(--s-2) 0;
+}
+.slow-note:empty {
+  margin: 0;
+}
+
+/* Tracker */
+.beta-controls {
+  display: grid;
+  gap: var(--s-3);
+  padding: var(--s-4) 0;
+  border-top: var(--hairline);
+  border-bottom: var(--hairline);
+}
+.beta-controls__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--s-4) var(--s-6);
+}
+.field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.beta-controls__asset {
+  display: flex;
+  gap: var(--s-2);
+}
+.beta-controls__asset .input {
+  width: 9rem;
+}
+.beta-examples {
+  align-items: center;
+}
+.beta-advanced > summary {
+  cursor: pointer;
+  font-size: var(--t-14);
+  color: var(--fg-2);
+  padding: var(--s-2) 0;
+}
+.beta-advanced[open] > summary {
+  margin-bottom: var(--s-3);
+}
+.beta-check {
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+  min-height: 44px;
+}
+.beta-results {
+  padding: var(--s-6) 0;
+  display: grid;
+  gap: var(--s-4);
+}
+.beta-result {
+  display: grid;
+  gap: var(--s-6);
+  min-width: 0;
+}
+.beta-result.is-stale {
+  opacity: 0.6;
+  transition: opacity 160ms var(--ease-out);
+}
+.beta-window {
+  color: var(--fg-2);
+  max-width: 62em;
+}
+.beta-findings {
+  display: grid;
+  gap: var(--s-2);
+  max-width: 44em;
+}
+.beta-diagnostics {
+  display: grid;
+  gap: var(--s-6);
+}
+.beta-relation {
+  padding-bottom: var(--s-12);
+}
+.beta-relation .h3 {
+  margin-bottom: var(--s-2);
+}
+
+/* Explorer: guided starts and compact headline metrics */
+.guided {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+}
+.guided__label {
+  font-size: var(--t-13);
+  color: var(--fg-3);
+}
+.headline-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-4) var(--s-10);
+  margin: var(--s-2) 0 var(--s-1);
+}
+.headline-metric__label {
+  font-size: var(--t-13);
+  color: var(--fg-2);
+}
+.headline-metric__value {
+  font-size: var(--t-32);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+.headline-metric__range {
+  font-size: var(--t-13);
+  color: var(--fg-3);
+  font-variant-numeric: tabular-nums;
+}
+.section__answer--compact {
+  font-size: var(--t-16);
+  line-height: 1.5;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--fg-2);
+  max-width: 44em;
+}
+.takeaway {
+  font-size: var(--t-14);
+  border-left: 2px solid var(--series-1);
+  padding-left: var(--s-3);
+  max-width: 44em;
+}
+.american-note {
+  font-size: var(--t-14);
+  color: var(--fg-2);
+  max-width: 44em;
 }

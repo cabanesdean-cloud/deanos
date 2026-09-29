@@ -6,6 +6,7 @@ import { area } from "d3-shape";
 import { type ReactNode, useMemo, useState } from "react";
 
 import { fmtDate, timeTickFormat } from "./axes";
+import { ReadHint } from "./ReadHint";
 import { useWidth } from "./useWidth";
 
 export type Layer = { id: string; label: string; values: number[]; color: string };
@@ -83,10 +84,7 @@ export function StackedArea({
             {readoutExtra?.(hover)}
           </>
         ) : (
-<span className="faint">
-            <span className="hint-hover">Hover or use arrow keys to read values</span>
-            <span className="hint-touch">Touch and drag across the chart to read values</span>
-          </span>
+<ReadHint />
         )}
       </div>
       {width > 0 ? (

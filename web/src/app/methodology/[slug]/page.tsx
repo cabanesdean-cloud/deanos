@@ -6,7 +6,7 @@ import { Validation } from "@/components/methodology/Validation";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { JsonLd } from "@/components/site/JsonLd";
 import { getMethod, groupOf, METHODS } from "@/content/methodology";
-import { OPTIONS_PROJECT, SITE, TX_PROJECT } from "@/lib/site";
+import { BETA_PROJECT, OPTIONS_PROJECT, SITE, TX_PROJECT } from "@/lib/site";
 
 export function generateStaticParams() {
   return METHODS.map((m) => ({ slug: m.slug }));
@@ -24,7 +24,7 @@ export async function generateMetadata(props: PageProps<"/methodology/[slug]">):
     alternates: { canonical: `/methodology/${m.slug}` },
     openGraph: {
       type: "article",
-      title: `${m.title} · ${groupOf(m) === "options" ? OPTIONS_PROJECT.name : groupOf(m) === "transactions" ? TX_PROJECT.name : SITE.name}`,
+      title: `${m.title} · ${groupOf(m) === "beta" ? BETA_PROJECT.name : groupOf(m) === "options" ? OPTIONS_PROJECT.name : groupOf(m) === "transactions" ? TX_PROJECT.name : SITE.name}`,
       description: m.summary,
       url: `/methodology/${m.slug}`,
     },
@@ -49,7 +49,9 @@ export default async function MethodPage(props: PageProps<"/methodology/[slug]">
   const url = `${SITE.origin}${SITE.basePath}/methodology/${m.slug}`;
   const group = groupOf(m);
   const app =
-    group === "options"
+    group === "beta"
+      ? { name: BETA_PROJECT.name, url: `${SITE.origin}${SITE.basePath}${BETA_PROJECT.href}` }
+      : group === "options"
       ? { name: OPTIONS_PROJECT.name, url: `${SITE.origin}${SITE.basePath}${OPTIONS_PROJECT.href}` }
       : group === "transactions"
         ? { name: TX_PROJECT.name, url: `${SITE.origin}${SITE.basePath}${TX_PROJECT.href}` }
@@ -112,8 +114,9 @@ export default async function MethodPage(props: PageProps<"/methodology/[slug]">
             <>
               <h2>Changes from the original version</h2>
               <p className="muted">
-                DeanOS began as a personal tool. Rebuilding it for the public meant rechecking each model; these are
-                the changes that came out of that.
+                {group === "beta"
+                  ? "The tracker began as a standalone app. Porting it here meant rechecking each calculation; these are the changes that came out of that, and what was kept."
+                  : "DeanOS began as a personal tool. Rebuilding it for the public meant rechecking each model; these are the changes that came out of that."}
               </p>
               <List items={m.changes} />
             </>

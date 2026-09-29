@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 
+/** After this long without a response, loading states say the engine may be starting. */
+export const SLOW_MS = 3500;
+
 /**
  * Engine API client. Requests are GETs keyed by their full URL, cached in
  * memory for the session (responses only change when the nightly data
@@ -31,9 +34,9 @@ export function apiUrl(path: string, params: Record<string, string | number | un
   return `${BASE}/${path}${qs ? `?${qs}` : ""}`;
 }
 
-async function request<T>(url: string): Promise<T> {
+export async function request<T>(url: string, timeoutMs = TIMEOUT_MS): Promise<T> {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     const res = await fetch(url, { signal: ctrl.signal, headers: { Accept: "application/json" } });
     const body = (await res.json().catch(() => null)) as { error?: string; detail?: unknown } | null;
@@ -68,6 +71,31 @@ export function fetchApi<T>(url: string): Promise<T> {
     .finally(() => inflight.delete(url));
   inflight.set(url, p);
   return p;
+}
+
+/**
+ * One lightweight request to wake the Python engine, at most once per page
+ * load: /health also loads the market data snapshot, which is the slow part
+ * of a cold start. Failures are ignored; real requests report their own.
+ */
+let warming: Promise<unknown> | null = null;
+export function warmEngine(): void {
+  if (warming || typeof window === "undefined") return;
+  warming = request(apiUrl("health")).catch(() => undefined);
+}
+
+/** True once ``active`` has stayed true for ``ms``. Resets when it turns false. */
+export function useSlow(active: boolean, ms = SLOW_MS): boolean {
+  const [slowSince, setSlowSince] = useState<number | null>(null);
+  useEffect(() => {
+    if (!active) return;
+    const t = setTimeout(() => setSlowSince(Date.now()), ms);
+    return () => {
+      clearTimeout(t);
+      setSlowSince(null);
+    };
+  }, [active, ms]);
+  return active && slowSince !== null;
 }
 
 export type ApiState<T> =

@@ -6,6 +6,7 @@ import { area, line } from "d3-shape";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 
 import { fmtDate, spreadLabels, textWidth, timeTickFormat } from "./axes";
+import { ReadHint } from "./ReadHint";
 import { useWidth } from "./useWidth";
 
 export type LineSeries = {
@@ -195,10 +196,7 @@ export function LineChart({
         {hi != null ? (
           (readout ?? defaultReadout)(hi)
         ) : (
-          <span className="faint">
-            <span className="hint-hover">Hover or use arrow keys to read values</span>
-            <span className="hint-touch">Touch and drag across the chart to read values</span>
-          </span>
+          <ReadHint />
         )}
       </div>
       {width > 0 && (

@@ -2,7 +2,7 @@
 
 import type { Route } from "next";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSelectedLayoutSegment } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { projectBrand, type ProjectLink, PROJECTS, projectForPath, SITE } from "@/lib/site";
@@ -10,13 +10,17 @@ import { projectBrand, type ProjectLink, PROJECTS, projectForPath, SITE } from "
 import { ThemeToggle } from "./ThemeToggle";
 
 const NAV = [
-  { href: "/explore", label: "Explore" },
+  { href: "/explore", label: "Portfolio explorer" },
   { href: "/methodology", label: "Methodology" },
   { href: "/about", label: "About" },
 ] as const;
 
 export function SiteHeader() {
-  const pathname = usePathname();
+  // The overview is served at "/" through a platform rewrite to /deanos/home, so the
+  // browser path and the route differ there; the route segment is reliable either way.
+  const segment = useSelectedLayoutSegment();
+  const rawPath = usePathname();
+  const pathname = segment === "home" ? "/home" : rawPath;
   const [open, setOpen] = useState(false);
   const projects = useRef<HTMLDetailsElement>(null);
   const toggle = useRef<HTMLButtonElement>(null);
@@ -78,7 +82,7 @@ export function SiteHeader() {
 
   const isCurrent = (href: string) => pathname === href || pathname.startsWith(href + "/");
   const project = projectForPath(pathname);
-  const brand = projectBrand(project);
+  const brand = project ? projectBrand(project) : null;
 
   return (
     <header className="site-header">
@@ -86,20 +90,25 @@ export function SiteHeader() {
         Skip to content
       </a>
       <div className="container site-header__row">
-        <div style={{ display: "flex", alignItems: "baseline", gap: 12, minWidth: 0 }}>
+        <div className="site-header__brands">
+          {/* The overview lives outside the /deanos base path, so this is a plain link. */}
           {SITE.homeUrl ? (
-            <a className="site-header__brand" href={SITE.homeUrl}>
+            <a className="site-header__brand" href={SITE.homeUrl} aria-current={project === null && pathname === "/home" ? "page" : undefined}>
               {SITE.owner}
             </a>
           ) : (
             <span className="site-header__brand">{SITE.owner}</span>
           )}
-          <span className="faint" aria-hidden>
-            /
-          </span>
-          <Link className="site-header__brand" href={brand.href as Route}>
-            {brand.name}
-          </Link>
+          {brand && (
+            <>
+              <span className="faint" aria-hidden>
+                /
+              </span>
+              <Link className="site-header__brand site-header__brand--project" href={brand.href as Route}>
+                {brand.name}
+              </Link>
+            </>
+          )}
         </div>
 
         <nav className="site-nav" aria-label="Main">
@@ -138,6 +147,11 @@ export function SiteHeader() {
       </div>
       {open && (
         <nav id="mobile-nav" ref={mobileNav} className="mobile-nav container" aria-label="Main">
+          {SITE.homeUrl && (
+            <a href={SITE.homeUrl} aria-current={pathname === "/home" ? "page" : undefined}>
+              Overview
+            </a>
+          )}
           {NAV.map((n) => (
             // Closing on tap also covers links to the page already open, where the path does not change.
             <Link key={n.href} href={n.href} aria-current={isCurrent(n.href) ? "page" : undefined} onClick={() => setOpen(false)}>
@@ -166,6 +180,8 @@ function ProjectItem({ project: p, current, onNavigate }: { project: ProjectLink
         <span className="menu-item__tag menu-item__tag--current">Current</span>
       ) : !p.href ? (
         <span className="menu-item__tag">Coming soon</span>
+      ) : p.note ? (
+        <span className="menu-item__tag">{p.note}</span>
       ) : null}
       <span className="menu-item__blurb">{p.blurb}</span>
     </>

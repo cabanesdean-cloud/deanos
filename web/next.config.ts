@@ -39,17 +39,18 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   typedRoutes: true,
   async headers() {
-    return [{ source: "/:path*", headers: SECURITY_HEADERS }];
+    return [
+      { source: "/:path*", headers: SECURITY_HEADERS },
+      { source: "/", headers: SECURITY_HEADERS, basePath: false as const },
+    ];
   },
   async rewrites() {
-    if (!proxyEngine) return [];
-    return [
-      {
-        source: "/deanos/api/:path*",
-        destination: `${ENGINE_DEV_URL}/deanos/api/:path*`,
-        basePath: false,
-      },
-    ];
+    // The personal overview at the domain root is served by src/proxy.ts: Next.js
+    // does not allow config rewrites to leave the base path.
+    const engine = proxyEngine
+      ? [{ source: "/deanos/api/:path*", destination: `${ENGINE_DEV_URL}/deanos/api/:path*`, basePath: false as const }]
+      : [];
+    return engine;
   },
 };
 

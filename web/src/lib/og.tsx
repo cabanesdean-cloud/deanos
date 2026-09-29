@@ -3,7 +3,17 @@ import { ImageResponse } from "next/og";
 /** Shared Open Graph card: title, subtitle, and an abstract fan of outcomes. */
 export const OG_SIZE = { width: 1200, height: 630 };
 
-export function ogImage({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle: string }) {
+export function ogImage({
+  eyebrow,
+  title,
+  subtitle,
+  footer = "deancabanes.com/deanos · educational project, not investment advice",
+}: {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  footer?: string;
+}) {
   return new ImageResponse(
     (
       <div
@@ -31,7 +41,7 @@ export function ogImage({ eyebrow, title, subtitle }: { eyebrow: string; title: 
           <div style={{ display: "flex", fontSize: 34, color: "#c3c2b7", marginTop: 20, lineHeight: 1.3 }}>{subtitle}</div>
         </div>
         <div style={{ display: "flex", fontSize: 24, color: "#9d9c93" }}>
-          deancabanes.com/deanos · educational project, not investment advice
+          {footer}
         </div>
       </div>
     ),

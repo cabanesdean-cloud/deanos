@@ -5,7 +5,7 @@ import { JsonLd } from "@/components/site/JsonLd";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { THEME_SCRIPT } from "@/components/site/ThemeToggle";
-import { SITE, SITE_URL } from "@/lib/site";
+import { HOME_URL, PERSON, SITE, SITE_URL } from "@/lib/site";
 
 import "./globals.css";
 
@@ -50,7 +50,7 @@ export const metadata: Metadata = {
   formatDetection: { telephone: false },
 };
 
-const PERSON_ID = `${SITE_URL}#person`;
+const PERSON_ID = `${HOME_URL}#person`;
 const STRUCTURED_DATA = {
   "@context": "https://schema.org",
   "@graph": [
@@ -58,8 +58,8 @@ const STRUCTURED_DATA = {
       "@type": "Person",
       "@id": PERSON_ID,
       name: SITE.owner,
-      description: "Economics student interested in finance, quantitative modeling, data and AI.",
-      ...(SITE.homeUrl ? { url: SITE.homeUrl } : {}),
+      description: PERSON.description,
+      url: HOME_URL,
       ...(SITE.githubUrl ? { sameAs: [SITE.githubUrl] } : {}),
     },
     {
@@ -87,7 +87,8 @@ const STRUCTURED_DATA = {
         ]
       : []),
     ...[
-      ["Explore", "/explore"],
+      ["Nonlinear Beta Tracker", "/beta"],
+      ["Portfolio explorer", "/explore"],
       ["Options Pricing", "/options"],
       ["Transaction ML", "/transactions"],
       ["Methodology", "/methodology"],

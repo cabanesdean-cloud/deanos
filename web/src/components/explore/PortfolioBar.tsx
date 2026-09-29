@@ -49,7 +49,7 @@ export function PortfolioBar({
               </button>
             ))}
             <button type="button" className="chip" aria-pressed={!demo || editing} onClick={() => onEdit(!editing)}>
-              {demo ? "Build your own" : editing ? "Close editor" : "Edit portfolio"}
+              {demo ? "Build a portfolio" : editing ? "Close editor" : "Edit portfolio"}
             </button>
           </div>
         </div>

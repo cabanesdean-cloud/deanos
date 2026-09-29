@@ -11,13 +11,6 @@
       "entrypoint": "deanos_engine.api:app"
     }
   },
-  "redirects": [
-    {
-      "source": "/",
-      "destination": "/deanos",
-      "permanent": false
-    }
-  ],
   "headers": [
     {
       "source": "/(.*)",
@@ -36,6 +29,10 @@
     }
   ],
   "rewrites": [
+    {
+      "source": "/",
+      "destination": "/deanos/home"
+    },
     {
       "source": "/deanos/api/(.*)",
       "destination": {

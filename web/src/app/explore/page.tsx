@@ -6,11 +6,11 @@ import { SectionSkeleton } from "@/components/ui/States";
 import { OG_IMAGE } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Explore",
+  title: "Portfolio explorer",
   description:
     "Analyze an example or custom portfolio: risk, volatility, simulation, market regimes, factor exposures, stress tests and comparisons.",
   alternates: { canonical: "/explore" },
-  openGraph: { title: "Explore a portfolio · DeanOS", description: "Risk, volatility, simulation, regimes, factor exposures and stress tests for an example or custom portfolio.", url: "/explore", images: [OG_IMAGE] },
+  openGraph: { title: "Portfolio explorer · DeanOS", description: "Risk, volatility, simulation, regimes, factor exposures and stress tests for an example or custom portfolio.", url: "/explore", images: [OG_IMAGE] },
 };
 
 export default function ExplorePage() {
