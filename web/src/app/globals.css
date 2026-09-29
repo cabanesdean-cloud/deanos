@@ -264,6 +264,7 @@ hr {
 }
 
 .prose {
+  overflow-wrap: break-word;
   max-width: var(--measure);
 }
 .prose > * + * {
@@ -2083,7 +2084,7 @@ dl.facts dd {
 .beta-controls__row {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: var(--s-4) var(--s-6);
 }
 .field {
@@ -2208,4 +2209,64 @@ dl.facts dd {
   font-size: var(--t-14);
   color: var(--fg-2);
   max-width: 44em;
+}
+
+/* QA pass 2026-09-29 */
+/* Guided starts are links styled as chips: no link underline, centered text. */
+a.chip {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+.site-header__brand-short {
+  display: none;
+}
+@media (max-width: 767px) {
+  .guided__label {
+    flex-basis: 100%;
+  }
+  /* The owner name never truncates; the project name gives way first. */
+  .site-header__brands > .site-header__brand:first-child {
+    flex-shrink: 0;
+  }
+  .site-header__brand--project {
+    min-width: 0;
+  }
+  /* Five short example tickers: wrap instead of a fading scroll row. */
+  .beta-examples {
+    flex-wrap: wrap;
+    overflow: visible;
+    margin: 0;
+    padding: 0;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .beta-examples::after {
+    display: none;
+  }
+  /* History periods: one row of equal buttons instead of wrapping "Max" alone. */
+  .beta-controls .segmented {
+    display: flex;
+    flex-wrap: nowrap;
+    width: 100%;
+  }
+  .beta-controls .segmented button {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0 var(--s-1);
+  }
+  .beta-controls__row > * {
+    flex: 1 1 100%;
+  }
+  .segmented button {
+    white-space: nowrap;
+  }
+}
+@media (max-width: 479px) {
+  .site-header__brand-full.has-short {
+    display: none;
+  }
+  .site-header__brand-short {
+    display: inline;
+  }
 }

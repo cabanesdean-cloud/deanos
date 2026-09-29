@@ -257,17 +257,17 @@ function Results({ d, stale }: { d: BetaResult; stale: boolean }) {
         <Stat
           label={`Sensitivity on a ${pctTick(-level)} ${b} ${word}`}
           value={num(down.estimate)}
-          range={`${num(down.ci_low)} to ${num(down.ci_high)}; ${plural(down.observations_beyond, word)} this low`}
+          range={`${num(down.ci_low)} to ${num(down.ci_high)}; ${plural(down.observations_beyond, word)} at ${pctTick(-level)} or lower`}
         />
         <Stat
           label={`Sensitivity on a +${pctTick(level)} ${b} ${word}`}
           value={num(up.estimate)}
-          range={`${num(up.ci_low)} to ${num(up.ci_high)}; ${plural(up.observations_beyond, word)} this high`}
+          range={`${num(up.ci_low)} to ${num(up.ci_high)}; ${plural(up.observations_beyond, word)} at +${pctTick(level)} or higher`}
         />
         <Stat
           label="Curvature"
           value={curved ? "Detected" : "Not detected"}
-          range={`β₂ ${num(q.b2.estimate)}, ${pValue(q.b2.p_value)}; fit improves ${trimNum(q.r_squared_gain * 100, 1)} pts of R²`}
+          range={`β₂ ${num(q.b2.estimate)}, ${pValue(q.b2.p_value)}; ${q.r_squared_gain * 100 < 0.05 ? "R² barely changes" : `R² +${trimNum(q.r_squared_gain * 100, 1)} pts`}`}
         />
       </StatGrid>
 

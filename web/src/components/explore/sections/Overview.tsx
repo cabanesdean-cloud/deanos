@@ -25,8 +25,8 @@ export function OverviewSection({ spec }: SectionProps) {
         const dd = m.max_drawdown;
         const x = d.growth.dates.map(isoToTime);
         const recovered = dd.recovery
-          ? `and took until ${date(dd.recovery)} to recover`
-          : "and has not fully recovered";
+          ? `it took until ${date(dd.recovery)} to recover`
+          : "it has not fully recovered since";
         const holdings = [...d.holdings].sort((a, b) => b.weight - a.weight);
         // Data-driven takeaway: the holding whose share of risk most exceeds its weight.
         const over = holdings
@@ -65,8 +65,8 @@ export function OverviewSection({ spec }: SectionProps) {
             }
             answer={
               <>
-                Over the last {years(d.data_quality.trading_days)}, this portfolio grew about {pct(m.cagr)} a year, with
-                typical yearly swings of {pct(m.volatility)}. Its worst fall, {pct(dd.depth)} from {date(dd.peak)} to {date(dd.trough)}, {recovered}.
+                Over the last {years(d.data_quality.trading_days)}, this portfolio {m.cagr < 0 ? <>lost about {pct(-m.cagr)}</> : <>grew about {pct(m.cagr)}</>} a year, with
+                typical yearly swings of {pct(m.volatility)}. Its worst fall was {pct(dd.depth)}, from {date(dd.peak)} to {date(dd.trough)}, and {recovered}.
                 {takeaway && <> {takeaway}</>}
               </>
             }

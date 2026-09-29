@@ -105,7 +105,8 @@ export function SiteHeader() {
                 /
               </span>
               <Link className="site-header__brand site-header__brand--project" href={brand.href as Route}>
-                {brand.name}
+                <span className={brand.short ? "site-header__brand-full has-short" : "site-header__brand-full"}>{brand.name}</span>
+                {brand.short && <span className="site-header__brand-short">{brand.short}</span>}
               </Link>
             </>
           )}

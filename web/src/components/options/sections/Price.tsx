@@ -47,6 +47,7 @@ export function PriceSection({ inputs }: OptionSectionProps) {
           {
             id: "am",
             label: american ? "Tree, American" : "Tree, American (comparison)",
+            shortLabel: american ? undefined : "Tree, American*",
             value: tree.american,
             color: "var(--series-2)",
             note: american
@@ -89,16 +90,18 @@ export function PriceSection({ inputs }: OptionSectionProps) {
                     </>
                   ) : (
                     <>A {tree.steps}-step binomial tree gives {money(tree.european)}.</>
-                  )}{" "}
-                  The American value in the chart is a comparison, not this option&apos;s price: a European option can only be
-                  exercised at expiry, while an American one can be exercised any day before it.
+                  )}
                 </>
               )
             }
           >
             <Block
               title="Four ways to price the same option"
-              caption="Black-Scholes is a formula. Monte Carlo simulates the price at expiry and averages the payoffs, so it carries sampling error, shown as its 95% interval. The binomial tree steps through time and can value early exercise, which the formula cannot."
+              caption={
+                american
+                  ? "Black-Scholes is a formula. Monte Carlo simulates the price at expiry and averages the payoffs, so it carries sampling error, shown as its 95% interval. The binomial tree steps through time and can value early exercise, which the formula cannot."
+                  : "Black-Scholes is a formula. Monte Carlo simulates the price at expiry and averages the payoffs, so it carries sampling error, shown as its 95% interval. The binomial tree steps through time and can value early exercise, which the formula cannot. *The American row is a comparison, not this option's price: a European option can only be exercised at expiry, an American one on any day before it."
+              }
             >
               <IntervalPlot
                 rows={rows}

@@ -51,7 +51,7 @@ export function AmericanSection({ inputs }: OptionSectionProps) {
             answer={
               premium >= 0.005 ? (
                 <>
-                  The right to exercise early is worth {money(premium)} here: the American {inputs.type} costs{" "}
+                  The right to exercise early is worth {money(premium >= 0.1 ? Math.round(premium * 100) / 100 : premium)} here: the American {inputs.type} costs{" "}
                   {money(t.american)} against {money(t.european)} for the European one on the same {t.steps}-step tree.
                 </>
               ) : noDividendCall ? (

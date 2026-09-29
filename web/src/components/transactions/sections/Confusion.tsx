@@ -49,7 +49,7 @@ export function ConfusionSection() {
           {first && (
             <>
               {" "}
-              Its most common mistake is calling {name(first.t)} {name(first.p)} ({int(first.count)} rows, {pct(first.share, 0)} of{" "}
+              Its most common mistake is labeling {name(first.t)} as {name(first.p)} ({int(first.count)} rows, {pct(first.share, 0)} of{" "}
               {name(first.t)}).
             </>
           )}

@@ -106,8 +106,8 @@ export function projectForPath(pathname: string): ProjectId | null {
 }
 
 /** Header brand (name and home link) for each project. */
-export function projectBrand(id: ProjectId): { name: string; href: string } {
-  if (id === "beta") return { name: BETA_PROJECT.name, href: BETA_PROJECT.href };
+export function projectBrand(id: ProjectId): { name: string; href: string; short?: string } {
+  if (id === "beta") return { name: BETA_PROJECT.name, href: BETA_PROJECT.href, short: "Beta Tracker" };
   if (id === "options") return { name: OPTIONS_PROJECT.name, href: OPTIONS_PROJECT.href };
   if (id === "transaction-ml") return { name: TX_PROJECT.name, href: TX_PROJECT.href };
   return { name: SITE.name, href: "/" };

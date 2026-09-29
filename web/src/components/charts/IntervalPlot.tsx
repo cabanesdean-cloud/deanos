@@ -9,6 +9,8 @@ import { useWidth } from "./useWidth";
 export type IntervalRow = {
   id: string;
   label: string;
+  /** Used instead of label when the label would take more than a third of a narrow chart. */
+  shortLabel?: string;
   value: number;
   low?: number;
   high?: number;
@@ -38,7 +40,8 @@ export function IntervalPlot({
 }) {
   const [ref, width] = useWidth<HTMLDivElement>();
   const [hover, setHover] = useState<string | null>(null);
-  const labelW = Math.min(Math.max(...rows.map((r) => textWidth(r.label))) + 12, width * 0.35);
+  const labelOf = (r: IntervalRow) => (r.shortLabel && textWidth(r.label) + 12 > width * 0.35 ? r.shortLabel : r.label);
+  const labelW = Math.min(Math.max(...rows.map((r) => textWidth(labelOf(r)))) + 12, width * 0.35);
   const valueW = Math.max(...rows.map((r) => textWidth(format(r.value)))) + 12;
   const innerW = Math.max(0, width - labelW - valueW);
   const lo = domain?.[0] ?? Math.min(refValue, ...rows.map((r) => r.low ?? r.value));
@@ -81,7 +84,7 @@ export function IntervalPlot({
                 >
                   <rect x={-labelW} y={cy - rowHeight / 2} width={width} height={rowHeight} fill="transparent" />
                   <text x={-12} y={cy} dy="0.32em" textAnchor="end" className={r.muted ? "" : "label-strong"}>
-                    {r.label}
+                    {labelOf(r)}
                   </text>
                   {r.low != null && r.high != null && (
                     <line x1={x(r.low)} x2={x(r.high)} y1={cy} y2={cy} stroke={color} strokeWidth={2} strokeLinecap="round" />
