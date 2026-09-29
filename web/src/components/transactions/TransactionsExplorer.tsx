@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo } from "react";
 
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { useTabStrip } from "@/components/ui/useTabStrip";
 import { parseTxInputs, TX_SECTIONS, txQuery, type TxInputs, type TxSectionId } from "@/lib/transactions";
 
 import { TryPanel } from "./TryPanel";
@@ -38,6 +39,7 @@ export function TransactionsExplorer() {
   const inputs = useMemo(() => parseTxInputs(new URLSearchParams(params.toString())), [params]);
   const sectionParam = params.get("s");
   const section: TxSectionId = TX_SECTIONS.some((s) => s.id === sectionParam) ? (sectionParam as TxSectionId) : "prediction";
+  const tabs = useTabStrip<HTMLElement>(section);
 
   const href = useCallback(
     (next: { inputs?: TxInputs; s?: TxSectionId }) => {
@@ -57,7 +59,7 @@ export function TransactionsExplorer() {
     <>
       <TryPanel key={canonical} inputs={inputs} onSubmit={tryIt} />
       <div className="container explorer">
-        <nav className="section-nav" aria-label="Transaction ML sections">
+        <nav ref={tabs} className="section-nav" aria-label="Transaction ML sections">
           {TX_SECTIONS.map((s) => (
             <Link key={s.id} href={href({ s: s.id }) as never} aria-current={s.id === section ? "page" : undefined} scroll={false}>
               {s.label}

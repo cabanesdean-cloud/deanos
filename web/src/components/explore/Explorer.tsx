@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo } from "react";
 
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { useTabStrip } from "@/components/ui/useTabStrip";
 import { apiUrl, useApi } from "@/lib/api";
 import { DEFAULT_SPEC, type Holding, parseSpec, toSpec } from "@/lib/portfolio";
 import { SECTIONS, type SectionId } from "@/lib/site";
@@ -41,6 +42,7 @@ export function Explorer() {
   const canonical = toSpec(holdings) || DEFAULT_SPEC;
   const sectionParam = params.get("s");
   const section: SectionId = SECTIONS.some((s) => s.id === sectionParam) ? (sectionParam as SectionId) : "overview";
+  const tabs = useTabStrip<HTMLElement>(section);
   const editing = params.get("edit") === "1";
 
   const demosRes = useApi<{ demos: Demo[] }>(apiUrl("demos"));
@@ -73,7 +75,7 @@ export function Explorer() {
         onDemo={(p) => router.push(href({ p }) as never, { scroll: false })}
       />
       <div className="container explorer">
-        <nav className="section-nav" aria-label="Analysis sections">
+        <nav ref={tabs} className="section-nav" aria-label="Analysis sections">
           {SECTIONS.map((s) => (
             <Link key={s.id} href={href({ s: s.id }) as never} aria-current={s.id === section ? "page" : undefined} scroll={false}>
               {s.label}

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { useTabStrip } from "@/components/ui/useTabStrip";
 import {
   inputsQuery,
   type OptionInputs,
@@ -48,6 +49,7 @@ export function OptionsExplorer() {
   const section: OptionSectionId = OPTION_SECTIONS.some((s) => s.id === sectionParam)
     ? (sectionParam as OptionSectionId)
     : "price";
+  const tabs = useTabStrip<HTMLElement>(section);
   const [seedNote, setSeedNote] = useState<string | null>(null);
 
   const href = useCallback(
@@ -84,7 +86,7 @@ export function OptionsExplorer() {
         onChange={(next) => router.replace(href({ inputs: next }) as never, { scroll: false })}
       />
       <div className="container explorer">
-        <nav className="section-nav" aria-label="Pricing sections">
+        <nav ref={tabs} className="section-nav" aria-label="Pricing sections">
           {OPTION_SECTIONS.map((s) => (
             <Link key={s.id} href={href({ s: s.id }) as never} aria-current={s.id === section ? "page" : undefined} scroll={false}>
               {s.label}
