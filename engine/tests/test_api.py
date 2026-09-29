@@ -230,3 +230,98 @@ def test_options_historical_vol_without_data(monkeypatch: pytest.MonkeyPatch, tm
     assert resp.status_code == 503
     # Pricing itself keeps working without market data.
     assert client.get(f"{BASE}/options/price", params=OPT).status_code == 200
+
+
+# ─── Transaction ML ─────────────────────────────────────────────────────────────
+
+TX = f"{BASE}/transactions"
+
+
+@pytest.mark.parametrize(
+    ("path", "params", "keys"),
+    [
+        (
+            "categorize",
+            {"d": "SQ *GOLDEN RAMEN SEATTLE WA", "a": -24.5},
+            {"input", "prediction", "top", "probabilities", "explanation", "coverage"},
+        ),
+        ("batch", [("d", "ZELLE TO SAM K"), ("d", "SHELL OIL 1234")], {"rows"}),
+        (
+            "metrics",
+            {},
+            {"categories", "metrics", "dataset", "config", "top_features", "keyword_rules"},
+        ),
+        ("examples", {}, {"presets", "samples"}),
+    ],
+)
+def test_transactions_endpoints(path: str, params: object, keys: set[str]) -> None:
+    set_snapshot(None)  # the classifier ships with the engine; no market data needed
+    resp = client.get(f"{TX}/{path}", params=params)
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert keys <= set(body)
+    assert "s-maxage" in resp.headers["cache-control"]
+    assert resp.headers["x-content-type-options"] == "nosniff"
+    assert resp.headers["content-security-policy"].startswith("default-src 'none'")
+    assert "synthetic" in body["disclaimer"]
+
+
+def test_transactions_categorize_contents() -> None:
+    body = client.get(f"{TX}/categorize", params={"d": "PAYROLL NORTHWIND LLC", "a": 2400}).json()
+    assert body["prediction"]["category"] == "income"
+    assert body["prediction"]["confidence"] == "high"
+    assert len(body["top"]) == 3
+    assert abs(sum(body["probabilities"].values()) - 1) < 1e-4
+    assert body["explanation"]["for"][0]["contribution"] > 0
+    k1 = client.get(f"{TX}/categorize", params={"d": "PAYROLL", "k": 1}).json()
+    assert len(k1["top"]) == 1 and k1["input"]["amount"] is None
+
+
+def test_transactions_batch_rows_and_errors() -> None:
+    params = [("d", "NETFLIX.COM"), ("d", "###"), ("d", "OAKWOOD APTS RENT")]
+    params += [("a", "-15.49"), ("a", ""), ("a", "$2,100")]
+    rows = client.get(f"{TX}/batch", params=params).json()["rows"]
+    assert rows[0]["prediction"]["category"] == "subscriptions" and rows[0]["amount"] == -15.49
+    assert "error" in rows[1] and rows[1]["amount"] is None
+    assert rows[2]["amount"] == 2100 and rows[2]["prediction"]["category"] == "housing"
+
+
+@pytest.mark.parametrize(
+    ("params", "fragment"),
+    [
+        ([("d", "A"), ("d", "B"), ("a", "1")], "one amount per"),
+        ([("d", "A"), ("a", "abc")], "not a number"),
+        ([("d", "A"), ("a", "1e9")], "at most"),
+        ([("d", "A"), ("a", "nan")], "finite"),
+    ],
+)
+def test_transactions_batch_bad_amounts_are_400(
+    params: list[tuple[str, str]], fragment: str
+) -> None:
+    resp = client.get(f"{TX}/batch", params=params)
+    assert resp.status_code == 400, resp.text
+    assert fragment in resp.json()["error"]
+
+
+def test_transactions_unreadable_description_is_400() -> None:
+    resp = client.get(f"{TX}/categorize", params={"d": "!!!"})
+    assert resp.status_code == 400
+    assert "letters or digits" in resp.json()["error"]
+
+
+def test_transactions_metrics_contents() -> None:
+    body = client.get(f"{TX}/metrics").json()
+    m = body["metrics"]
+    assert len(body["categories"]) == 14
+    assert len(m["model"]["confusion"]) == 14 and len(m["model"]["per_class"]) == 14
+    assert m["model"]["accuracy"] > m["keyword"]["accuracy"] > m["majority"]["accuracy"]
+    assert len(m["model"]["calibration"]["bins"]) == 10
+    assert body["dataset"]["groups_shared_across_splits"] == 0
+
+
+def test_transactions_examples_are_predicted_live() -> None:
+    body = client.get(f"{TX}/examples").json()
+    assert len(body["presets"]) >= 10
+    s = body["samples"][0]
+    assert {"description", "category", "label", "prediction", "correct", "why"} <= set(s)
+    assert s["correct"] == (s["prediction"]["category"] == s["category"])

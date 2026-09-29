@@ -37,6 +37,7 @@ from deanos_engine.models import (
     options,
     regime,
     stress,
+    transactions,
     var,
 )
 from deanos_engine.portfolio import (
@@ -108,6 +109,11 @@ async def _portfolio_error(_: Request, exc: PortfolioError) -> JSONResponse:
 
 @app.exception_handler(options.OptionsError)
 async def _options_error(_: Request, exc: options.OptionsError) -> JSONResponse:
+    return JSONResponse(status_code=400, content={"error": str(exc)})
+
+
+@app.exception_handler(transactions.TransactionsError)
+async def _transactions_error(_: Request, exc: transactions.TransactionsError) -> JSONResponse:
     return JSONResponse(status_code=400, content={"error": str(exc)})
 
 
@@ -584,6 +590,174 @@ def _validation_cached() -> dict[str, Any]:
     if not _VALIDATION:
         _VALIDATION.update(options.validation_report())
     return dict(_VALIDATION)
+
+
+# ─── Transaction ML ─────────────────────────────────────────────────────────────
+# A small classifier trained offline on synthetic transactions; the weights ship
+# with the engine (models/transactions_model.json), so no data snapshot is needed.
+
+Description = Annotated[
+    str,
+    Query(
+        alias="d",
+        min_length=1,
+        max_length=transactions.MAX_DESCRIPTION,
+        description="Statement descriptor, e.g. 'SQ *BLUE HERON COFFEE SAN DIEGO CA'.",
+    ),
+]
+Amount = Annotated[
+    float | None,
+    Query(
+        alias="a",
+        ge=-transactions.MAX_AMOUNT,
+        le=transactions.MAX_AMOUNT,
+        description="Signed amount: negative for money out, positive for money in.",
+    ),
+]
+TX_DISCLAIMER = (
+    "Trained and evaluated on synthetic transactions; an educational model, "
+    "not a financial product."
+)
+
+
+def _respond_tx(response: Response, body: dict[str, Any]) -> dict[str, Any]:
+    response.headers["Cache-Control"] = CACHE_HEADER
+    body["engine_version"] = __version__
+    body["disclaimer"] = TX_DISCLAIMER
+    out: dict[str, Any] = clean(body)
+    return out
+
+
+def _brief(result: dict[str, Any]) -> dict[str, Any]:
+    """Compact per-row result for tables."""
+    return {
+        "normalized": result["input"]["normalized"],
+        "prediction": result["prediction"],
+        "top": result["top"],
+        "why": result["explanation"]["for"][:3],
+    }
+
+
+def _parse_amounts(raw: list[str] | None, n: int) -> list[float | None]:
+    if not raw:
+        return [None] * n
+    if len(raw) != n:
+        raise transactions.TransactionsError(
+            "Give one amount per description (leave an amount empty to skip it)."
+        )
+    out: list[float | None] = []
+    for s in raw:
+        s = s.strip()
+        if not s:
+            out.append(None)
+            continue
+        try:
+            v = float(s.replace(",", "").replace("$", ""))
+        except ValueError:
+            raise transactions.TransactionsError(f"'{s[:20]}' is not a number.") from None
+        if not np.isfinite(v) or abs(v) > transactions.MAX_AMOUNT:
+            raise transactions.TransactionsError("Amounts must be finite and at most 1,000,000.")
+        out.append(v)
+    return out
+
+
+@router.get("/transactions/categorize")
+def transaction_categorize(
+    response: Response,
+    d: Description,
+    a: Amount = None,
+    k: Annotated[int, Query(ge=1, le=14, description="How many categories to return.")] = 3,
+) -> dict[str, Any]:
+    """Most likely categories for one descriptor, with calibrated probabilities and reasons."""
+    model = transactions.load_model()
+    return _respond_tx(response, _timed(lambda: transactions.categorize(model, d, a, k)))
+
+
+@router.get("/transactions/batch")
+def transaction_batch(
+    response: Response,
+    d: Annotated[
+        list[str],
+        Query(min_length=1, max_length=transactions.MAX_BATCH, description="Descriptors."),
+    ],
+    a: Annotated[
+        list[str] | None,
+        Query(max_length=transactions.MAX_BATCH, description="Amounts, one per descriptor."),
+    ] = None,
+) -> dict[str, Any]:
+    """Categorize up to 25 descriptors; rows the model cannot read carry an error instead."""
+    amounts = _parse_amounts(a, len(d))
+    model = transactions.load_model()
+
+    def run() -> dict[str, Any]:
+        rows: list[dict[str, Any]] = []
+        for desc, amt in zip(d, amounts, strict=True):
+            try:
+                rows.append({"amount": amt, **_brief(transactions.categorize(model, desc, amt))})
+            except transactions.TransactionsError as exc:
+                rows.append({"amount": amt, "error": str(exc)})
+        return {"rows": rows}
+
+    return _respond_tx(response, _timed(run))
+
+
+@router.get("/transactions/metrics")
+def transaction_metrics(response: Response) -> dict[str, Any]:
+    """Held-out evaluation, baselines, calibration and the data behind them, as trained."""
+    return _respond_tx(response, dict(_tx_metrics_cached()))
+
+
+_TX_METRICS: dict[str, Any] = {}
+
+
+def _tx_metrics_cached() -> dict[str, Any]:
+    if not _TX_METRICS:
+        model = transactions.load_model()
+        meta = model.meta
+        _TX_METRICS.update(
+            {
+                "categories": [
+                    {"id": c, "label": lbl}
+                    for c, lbl in zip(model.categories, model.labels, strict=True)
+                ],
+                "metrics": meta["metrics"],
+                "dataset": meta["dataset"],
+                "config": meta["config"],
+                "top_features": transactions.top_features(model),
+                "keyword_rules": [
+                    {"category": c, "pattern": p} for c, p in transactions.KEYWORD_RULES
+                ],
+            }
+        )
+    return _TX_METRICS
+
+
+@router.get("/transactions/examples")
+def transaction_examples(response: Response) -> dict[str, Any]:
+    """Descriptors to try, and held-out test transactions with the model's live predictions."""
+    model = transactions.load_model()
+
+    def run() -> dict[str, Any]:
+        samples = []
+        for s in model.meta.get("samples", []):
+            res = transactions.categorize(model, s["description"], s["amount"])
+            samples.append(
+                {
+                    **s,
+                    "label": model.label_of(s["category"]),
+                    **_brief(res),
+                    "correct": res["prediction"]["category"] == s["category"],
+                }
+            )
+        return {
+            "presets": [
+                {"description": dsc, "amount": amt, "note": note}
+                for dsc, amt, note in transactions.PRESETS
+            ],
+            "samples": samples,
+        }
+
+    return _respond_tx(response, _timed(run))
 
 
 app.include_router(router)

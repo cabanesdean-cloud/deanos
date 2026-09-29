@@ -242,3 +242,93 @@ def test_option_fuzz_never_500(params: dict[str, str], path: str) -> None:
     assert resp.status_code in (200, 400, 422), (params, resp.text)
     if resp.status_code == 200:
         _finite_or_none(resp.json())
+
+
+# ─── Transaction ML: hostile and edge inputs ────────────────────────────────────
+
+TX_PATH = f"{BASE}/transactions/categorize"
+
+
+@pytest.mark.parametrize(
+    "d",
+    [
+        "a",
+        "0",
+        "A" * 200,
+        "Café Olé",
+        "ＳＴＡＲＢＵＣＫＳ",  # fullwidth letters fold to ASCII
+        "<script>alert(1)</script>",
+        "'; DROP TABLE t;--",
+        "%00%0d%0a",
+        "\u202eRLO override text",
+        "x" * 199 + "é",
+    ],
+)
+def test_transactions_edge_descriptions_are_200(d: str) -> None:
+    resp = client.get(TX_PATH, params={"d": d})
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    _finite_or_none(body)
+    assert abs(sum(body["probabilities"].values()) - 1) < 1e-4
+    assert "<script>" not in resp.text
+
+
+@pytest.mark.parametrize(
+    ("params", "status"),
+    [
+        ({"d": ""}, 422),
+        ({"d": "A" * 201}, 422),
+        ({}, 422),
+        ({"d": "COFFEE", "a": "nan"}, 422),
+        ({"d": "COFFEE", "a": "inf"}, 422),
+        ({"d": "COFFEE", "a": "1e400"}, 422),
+        ({"d": "COFFEE", "a": 1_000_001}, 422),
+        ({"d": "COFFEE", "a": "<script>"}, 422),
+        ({"d": "COFFEE", "k": 0}, 422),
+        ({"d": "COFFEE", "k": 15}, 422),
+        ({"d": "🙂"}, 400),
+        ({"d": "     "}, 400),
+        ({"d": "店铺"}, 400),
+    ],
+)
+def test_transactions_bad_inputs(params: dict[str, object], status: int) -> None:
+    resp = client.get(TX_PATH, params=params)
+    assert resp.status_code == status, resp.text
+    assert "error" in resp.json()
+    assert "<script>" not in resp.text
+
+
+def test_transactions_batch_limits() -> None:
+    ok = client.get(f"{BASE}/transactions/batch", params=[("d", f"SHOP {i}") for i in range(25)])
+    assert ok.status_code == 200 and len(ok.json()["rows"]) == 25
+    over = client.get(f"{BASE}/transactions/batch", params=[("d", "SHOP")] * 26)
+    assert over.status_code == 422
+    assert client.get(f"{BASE}/transactions/batch").status_code == 422
+    long_row = client.get(f"{BASE}/transactions/batch", params=[("d", "A" * 500)])
+    assert long_row.status_code == 200 and "limited" in long_row.json()["rows"][0]["error"]
+
+
+@given(
+    st.text(max_size=250),
+    st.one_of(
+        st.none(),
+        st.floats(allow_nan=True, allow_infinity=True).map(repr),
+        st.text(max_size=8),
+    ),
+    st.one_of(st.none(), st.integers(-5, 20).map(str), st.text(max_size=3)),
+)
+@settings(max_examples=200, deadline=None)
+def test_transactions_fuzz_never_500(d: str, a: str | None, k: str | None) -> None:
+    params = {"d": d, **({"a": a} if a is not None else {}), **({"k": k} if k is not None else {})}
+    resp = client.get(TX_PATH, params=params)
+    assert resp.status_code in (200, 400, 422), (params, resp.text)
+    if resp.status_code == 200:
+        _finite_or_none(resp.json())
+
+
+@given(st.lists(st.text(max_size=60), min_size=1, max_size=30), st.lists(st.text(max_size=6)))
+@settings(max_examples=80, deadline=None)
+def test_transactions_batch_fuzz_never_500(ds: list[str], amounts: list[str]) -> None:
+    params = [("d", d) for d in ds] + [("a", a) for a in amounts]
+    resp = client.get(f"{BASE}/transactions/batch", params=params)
+    assert resp.status_code in (200, 400, 422), resp.text

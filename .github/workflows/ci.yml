@@ -22,7 +22,7 @@ jobs:
       - run: uv sync --locked --extra dev
       - run: uv run ruff check . ../scripts
       - run: uv run ruff format --check . ../scripts
-      - run: uv run mypy deanos_engine tests ../scripts/refresh_data.py
+      - run: uv run mypy deanos_engine tests ../scripts/refresh_data.py ../scripts/build_transactions_model.py
       - run: uv run pytest -q
 
   web:
