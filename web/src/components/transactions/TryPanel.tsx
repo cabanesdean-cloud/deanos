@@ -41,7 +41,10 @@ export function TryPanel({ inputs, onSubmit }: { inputs: TxInputs; onSubmit: (ne
               maxLength={MAX_DESCRIPTION}
               onChange={(e) => setDesc(e.target.value)}
               autoComplete="off"
+              autoCapitalize="characters"
+              autoCorrect="off"
               spellCheck={false}
+              enterKeyHint="go"
               aria-invalid={!descValid || undefined}
             />
           </div>
@@ -49,15 +52,27 @@ export function TryPanel({ inputs, onSubmit }: { inputs: TxInputs; onSubmit: (ne
             <label htmlFor={amtId} className="small muted">
               Amount (optional; negative is money out)
             </label>
-            <input
-              id={amtId}
-              className="input field__input"
-              inputMode="decimal"
-              value={amt}
-              onChange={(e) => setAmt(e.target.value)}
-              aria-invalid={!amtValid || undefined}
-              aria-describedby={!amtValid ? amtId + "-err" : undefined}
-            />
+            <div className="tx-amount">
+              <input
+                id={amtId}
+                className="input field__input"
+                inputMode="decimal"
+                enterKeyHint="go"
+                value={amt}
+                onChange={(e) => setAmt(e.target.value)}
+                aria-invalid={!amtValid || undefined}
+                aria-describedby={!amtValid ? amtId + "-err" : undefined}
+              />
+              {/* The iOS decimal keypad has no minus key; phones get a sign switch instead. */}
+              <button
+                type="button"
+                className="button touch-only tx-sign"
+                aria-label="Switch between money in and money out"
+                onClick={() => setAmt((v) => (v.trim().startsWith("-") ? v.trim().slice(1) : "-" + v.trim()))}
+              >
+                ±
+              </button>
+            </div>
           </div>
           <button type="submit" className="button button--primary" disabled={!descValid || !amtValid}>
             Categorize

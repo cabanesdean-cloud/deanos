@@ -112,13 +112,17 @@ function PriceField({ label, value, onCommit }: { label: string; value: number; 
         id={id}
         className="input field__input"
         inputMode="decimal"
+        enterKeyHint="done"
         value={text}
         aria-invalid={!valid || undefined}
         aria-describedby={!valid ? id + "-err" : undefined}
         onChange={(e) => setText(e.target.value)}
         onBlur={submit}
         onKeyDown={(e) => {
-          if (e.key === "Enter") submit();
+          if (e.key !== "Enter") return;
+          submit();
+          // On-screen keyboards: Done also puts the keyboard away.
+          if (window.matchMedia("(hover: none)").matches) e.currentTarget.blur();
         }}
       />
       {!valid && (
@@ -160,7 +164,18 @@ function TickerSeed({ onSeed }: { onSeed: (h: HistoricalVol) => void }) {
           Ticker (S&amp;P 500 stocks and major ETFs)
         </label>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <input id={id} className="input" style={{ width: 120 }} value={ticker} onChange={(e) => setTicker(e.target.value)} autoComplete="off" spellCheck={false} />
+          <input
+            id={id}
+            className="input"
+            style={{ width: 120 }}
+            value={ticker}
+            onChange={(e) => setTicker(e.target.value)}
+            autoComplete="off"
+            autoCapitalize="characters"
+            autoCorrect="off"
+            spellCheck={false}
+            enterKeyHint="go"
+          />
           <button type="submit" className="button button--small" disabled={busy}>
             {busy ? "Loading…" : "Use its last close and realized volatility"}
           </button>

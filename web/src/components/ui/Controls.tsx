@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useId, useRef } from "react";
 
 export function Segmented<T extends string>({
   label,
@@ -47,6 +47,13 @@ export function Slider({
   onCommit?: (v: number) => void;
 }) {
   const id = useId();
+  // Value committed by the last pointerup, so a touch drag that also fires touchend commits once.
+  const committed = useRef<number | null>(null);
+  const commitOnce = (v: number) => {
+    if (committed.current === v) return;
+    committed.current = v;
+    onCommit?.(v);
+  };
   return (
     <div className="slider" style={{ minWidth: 220, flex: "1 1 220px" }}>
       <div className="slider__head">
@@ -65,7 +72,17 @@ export function Slider({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        onPointerUp={(e) => onCommit?.(Number((e.target as HTMLInputElement).value))}
+        onPointerDown={() => {
+          committed.current = null;
+        }}
+        onPointerUp={(e) => {
+          const v = Number((e.target as HTMLInputElement).value);
+          committed.current = v;
+          onCommit?.(v);
+        }}
+        // Touch: iOS may end a drag with a cancel (or only a touchend) instead of pointerup.
+        onPointerCancel={(e) => commitOnce(Number((e.target as HTMLInputElement).value))}
+        onTouchEnd={(e) => commitOnce(Number((e.target as HTMLInputElement).value))}
         onKeyUp={(e) => onCommit?.(Number((e.target as HTMLInputElement).value))}
       />
     </div>

@@ -124,6 +124,7 @@ function PriceInput({ initial, modelPrice, onSolve }: { initial: number; modelPr
           id={id}
           className="input field__input"
           inputMode="decimal"
+          enterKeyHint="go"
           value={text}
           aria-invalid={!valid || undefined}
           onChange={(e) => setText(e.target.value)}

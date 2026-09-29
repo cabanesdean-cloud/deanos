@@ -85,13 +85,17 @@ export function PortfolioEditor({
                 aria-invalid={problem ? true : undefined}
                 value={r.ticker}
                 autoComplete="off"
+                autoCapitalize="characters"
+                autoCorrect="off"
                 spellCheck={false}
+                enterKeyHint="go"
                 placeholder="e.g. VTI"
                 onChange={(e) => update(r.key, { ticker: e.target.value })}
               />
               <input
                 className="input"
                 inputMode="decimal"
+                enterKeyHint="go"
                 aria-label={`Weight ${i + 1}`}
                 value={r.weight}
                 placeholder="%"
