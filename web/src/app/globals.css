@@ -2151,6 +2151,13 @@ dl.facts dd {
 }
 
 /* Explorer: guided starts and compact headline metrics */
+/* Main column of the explorer grid: guided starts + the section, so the grid keeps exactly two children. */
+.explorer__main {
+  display: grid;
+  gap: var(--s-6);
+  min-width: 0;
+  align-content: start;
+}
 .guided {
   display: flex;
   flex-wrap: wrap;

@@ -84,6 +84,7 @@ export function Explorer() {
             </Link>
           ))}
         </nav>
+        <div className="explorer__main">
         {section === "overview" && (
           <nav className="guided" aria-label="Suggested starting points">
             <span className="guided__label">Start with</span>
@@ -104,6 +105,7 @@ export function Explorer() {
           <ErrorBoundary label={SECTIONS.find((s) => s.id === section)?.label ?? section}>
             {RENDER[section]({ spec: canonical, demos })}
           </ErrorBoundary>
+        </div>
         </div>
       </div>
     </>

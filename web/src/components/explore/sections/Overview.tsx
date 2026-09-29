@@ -66,7 +66,7 @@ export function OverviewSection({ spec }: SectionProps) {
             answer={
               <>
                 Over the last {years(d.data_quality.trading_days)}, this portfolio grew about {pct(m.cagr)} a year, with
-                typical yearly swings of {pct(m.volatility)}. Its worst fall {recovered}.
+                typical yearly swings of {pct(m.volatility)}. Its worst fall, {pct(dd.depth)} from {date(dd.peak)} to {date(dd.trough)}, {recovered}.
                 {takeaway && <> {takeaway}</>}
               </>
             }
