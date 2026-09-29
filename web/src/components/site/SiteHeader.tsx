@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-import { PROJECTS, SITE } from "@/lib/site";
+import { type ProjectLink, PROJECTS, SITE } from "@/lib/site";
 
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -49,6 +49,8 @@ export function SiteHeader() {
     };
   }, []);
 
+  const closeProjects = () => projects.current?.removeAttribute("open");
+
   const isCurrent = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
   return (
@@ -77,19 +79,9 @@ export function SiteHeader() {
           <details className="nav-projects" ref={projects}>
             <summary>Projects</summary>
             <div className="nav-projects__menu">
-              {PROJECTS.map((p) =>
-                p.href ? (
-                  <Link key={p.name} className="menu-item" href={p.href as Route} aria-current={p.current ? "page" : undefined}>
-                    {p.name}
-                    {p.current && <span className="menu-item__note">You are here</span>}
-                  </Link>
-                ) : (
-                  <span key={p.name} className="menu-item" aria-disabled="true">
-                    {p.name}
-                    <span className="menu-item__note">Coming soon</span>
-                  </span>
-                ),
-              )}
+              {PROJECTS.map((p) => (
+                <ProjectItem key={p.name} project={p} onNavigate={closeProjects} />
+              ))}
             </div>
           </details>
           {NAV.map((n) => (
@@ -125,17 +117,39 @@ export function SiteHeader() {
           ))}
           {SITE.githubUrl && <a href={SITE.githubUrl}>GitHub</a>}
           <div className="mobile-nav__label">Projects</div>
-          {PROJECTS.map((p) =>
-            p.href ? (
-              <Link key={p.name} href={p.href as Route}>
-                {p.name}
-              </Link>
-            ) : (
-              <span key={p.name}>{p.name} (coming soon)</span>
-            ),
-          )}
+          <div className="mobile-nav__projects">
+            {PROJECTS.map((p) => (
+              <ProjectItem key={p.name} project={p} onNavigate={() => setOpen(false)} />
+            ))}
+          </div>
         </nav>
       )}
     </header>
+  );
+}
+
+/** One project in the Projects menu: name and status on the first line, a short description below. */
+function ProjectItem({ project: p, onNavigate }: { project: ProjectLink; onNavigate: () => void }) {
+  const body = (
+    <>
+      <span className="menu-item__name">{p.name}</span>
+      {p.current ? (
+        <span className="menu-item__tag menu-item__tag--current">Current</span>
+      ) : !p.href ? (
+        <span className="menu-item__tag">Coming soon</span>
+      ) : null}
+      <span className="menu-item__blurb">{p.blurb}</span>
+    </>
+  );
+  if (!p.href)
+    return (
+      <div className="menu-item" aria-disabled="true">
+        {body}
+      </div>
+    );
+  return (
+    <Link className="menu-item" href={p.href as Route} aria-current={p.current ? "page" : undefined} onClick={onNavigate}>
+      {body}
+    </Link>
   );
 }

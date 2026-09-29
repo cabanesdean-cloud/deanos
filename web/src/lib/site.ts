@@ -12,14 +12,20 @@ export const SITE = {
   githubUrl: "https://github.com/cabanesdean-cloud/deanos" as string | null,
 };
 
-export type ProjectLink = { name: string; href: string | null; current?: boolean };
+export type ProjectLink = {
+  name: string;
+  /** One line for the Projects menu. */
+  blurb: string;
+  /** Null until the project is live; the menu then shows it as coming soon instead of a dead link. */
+  href: string | null;
+  current?: boolean;
+};
 
-/** Portfolio projects. `href: null` renders as "coming soon" rather than a dead link. */
+/** Portfolio projects shown in the Projects menu. Edit blurbs and links here as projects launch. */
 export const PROJECTS: ProjectLink[] = [
-  { name: "DeanOS", href: "/", current: true },
-  { name: "Options Pricing", href: null },
-  { name: "Transaction ML", href: null },
-  { name: "Surf Forecasting", href: null },
+  { name: "DeanOS", blurb: "Portfolio risk and modeling engine", href: "/", current: true },
+  { name: "Options Pricing", blurb: "Pricing options and comparing the models behind them", href: null },
+  { name: "Transaction ML", blurb: "Machine learning on transaction data", href: null },
 ];
 
 export const SECTIONS = [
