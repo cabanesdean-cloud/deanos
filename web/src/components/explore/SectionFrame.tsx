@@ -18,6 +18,7 @@ export function SectionFrame({
   methodLabel,
   quality,
   asOf,
+  factorsAsOf,
   stale,
 }: {
   title: string;
@@ -29,6 +30,8 @@ export function SectionFrame({
   methodLabel: string;
   quality?: DataQuality;
   asOf?: string;
+  /** Factor data can lag prices (Ken French publishes monthly); shown separately when it differs. */
+  factorsAsOf?: string;
   stale?: boolean;
 }) {
   return (
@@ -55,6 +58,7 @@ export function SectionFrame({
           </span>
         )}
         {asOf && <span>Prices as of {date(asOf)}</span>}
+        {factorsAsOf && factorsAsOf !== asOf && <span>Factor data through {date(factorsAsOf)}</span>}
       </footer>
     </article>
   );

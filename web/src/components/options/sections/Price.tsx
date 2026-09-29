@@ -44,7 +44,15 @@ export function PriceSection({ inputs }: OptionSectionProps) {
               ]
             : []),
           { id: "eu", label: "Tree, European", value: tree.european, note: "Binomial tree, " + tree.steps + " steps" },
-          { id: "am", label: "Tree, American", value: tree.american, color: "var(--series-2)", note: "Binomial tree, " + tree.steps + " steps, early exercise allowed" },
+          {
+            id: "am",
+            label: american ? "Tree, American" : "Tree, American (comparison)",
+            value: tree.american,
+            color: "var(--series-2)",
+            note: american
+              ? "Binomial tree, " + tree.steps + " steps, early exercise allowed"
+              : "Shown for comparison only: the same contract if it could be exercised before expiry",
+          },
         ];
         const vals = rows.flatMap((r) => [r.value, r.low ?? r.value, r.high ?? r.value]);
         const lo = Math.min(...vals);
@@ -81,7 +89,9 @@ export function PriceSection({ inputs }: OptionSectionProps) {
                     </>
                   ) : (
                     <>A {tree.steps}-step binomial tree gives {money(tree.european)}.</>
-                  )}
+                  )}{" "}
+                  The American value in the chart is a comparison, not this option&apos;s price: a European option can only be
+                  exercised at expiry, while an American one can be exercised any day before it.
                 </>
               )
             }

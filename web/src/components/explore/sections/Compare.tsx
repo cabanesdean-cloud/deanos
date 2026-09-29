@@ -107,6 +107,7 @@ export function CompareSection({ spec, demos }: SectionProps) {
             stale={stale}
             method="performance"
             methodLabel="performance and risk metrics"
+            asOf={d.as_of}
             answer={
               <>
                 Over the same {num(d.window.trading_days / 252, 1)} years, {bName} returned{" "}

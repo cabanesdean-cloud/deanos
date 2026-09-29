@@ -52,6 +52,7 @@ export function FactorsSection({ spec }: SectionProps) {
             methodLabel="Fama-French five-factor plus momentum regression"
             quality={d.data_quality}
             asOf={d.as_of}
+            factorsAsOf={d.window.factor_data_end}
             answer={
               <>
                 {pct(d.r_squared, 0)} of this portfolio&apos;s daily ups and downs line up with six well-known
