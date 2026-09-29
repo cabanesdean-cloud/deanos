@@ -27,7 +27,7 @@ export type ProjectLink = {
 export const PROJECTS: ProjectLink[] = [
   { id: "deanos", name: "DeanOS", blurb: "Portfolio risk and modeling engine", href: "/" },
   { id: "options", name: "Options Pricing", blurb: "Pricing options and comparing the models behind them", href: "/options" },
-  { id: "transaction-ml", name: "Transaction ML", blurb: "Machine learning on transaction data", href: null },
+  { id: "transaction-ml", name: "Transaction ML", blurb: "Categorizing bank transactions with explainable machine learning", href: "/transactions" },
 ];
 
 export const OPTIONS_PROJECT = {
@@ -36,10 +36,25 @@ export const OPTIONS_PROJECT = {
   href: "/options",
 };
 
+export const TX_PROJECT = {
+  name: "Transaction ML",
+  tagline: "Explainable Transaction Categorization",
+  href: "/transactions",
+};
+
 /** Which project a path (without the /deanos base path) belongs to; drives the menu's "Current" tag. */
 export function projectForPath(pathname: string): ProjectId {
   if (pathname === "/options" || pathname.startsWith("/options/") || pathname.startsWith("/methodology/options-")) return "options";
+  if (pathname === "/transactions" || pathname.startsWith("/transactions/") || pathname.startsWith("/methodology/transactions-"))
+    return "transaction-ml";
   return "deanos";
+}
+
+/** Header brand (name and home link) for each project. */
+export function projectBrand(id: ProjectId): { name: string; href: string } {
+  if (id === "options") return { name: OPTIONS_PROJECT.name, href: OPTIONS_PROJECT.href };
+  if (id === "transaction-ml") return { name: TX_PROJECT.name, href: TX_PROJECT.href };
+  return { name: SITE.name, href: "/" };
 }
 
 export const SECTIONS = [

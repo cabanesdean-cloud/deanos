@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-import { OPTIONS_PROJECT, type ProjectLink, PROJECTS, projectForPath, SITE } from "@/lib/site";
+import { projectBrand, type ProjectLink, PROJECTS, projectForPath, SITE } from "@/lib/site";
 
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -53,7 +53,7 @@ export function SiteHeader() {
 
   const isCurrent = (href: string) => pathname === href || pathname.startsWith(href + "/");
   const project = projectForPath(pathname);
-  const brand = project === "options" ? { name: OPTIONS_PROJECT.name, href: OPTIONS_PROJECT.href } : { name: SITE.name, href: "/" };
+  const brand = projectBrand(project);
 
   return (
     <header className="site-header">

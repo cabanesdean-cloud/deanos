@@ -85,6 +85,7 @@ const STRUCTURED_DATA = {
     ...[
       ["Explore", "/explore"],
       ["Options Pricing", "/options"],
+      ["Transaction ML", "/transactions"],
       ["Methodology", "/methodology"],
       ["About", "/about"],
     ].map(([name, path]) => ({ "@type": "SiteNavigationElement", name, url: `${SITE_URL}${path}` })),

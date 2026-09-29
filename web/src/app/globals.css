@@ -1317,3 +1317,117 @@ dl.facts dd {
   max-width: var(--measure);
   margin-bottom: var(--s-4);
 }
+
+/* ─── Transaction ML ────────────────────────────────────────────────────── */
+
+.tx-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--s-4);
+}
+.tx-form__desc {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+.tx-form__desc .input {
+  width: 100%;
+  font-family: var(--font-mono);
+}
+.tx-presets {
+  display: grid;
+  gap: 6px;
+  margin-top: var(--s-4);
+}
+.tx-bar {
+  display: inline-block;
+  width: 56px;
+  height: 8px;
+  margin-left: var(--s-2);
+  background: var(--bg-3);
+  border-radius: 2px;
+  vertical-align: middle;
+}
+.tx-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+}
+.tx-tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin: var(--s-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.tx-tokens li {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  max-width: 100%;
+  padding: var(--s-1) var(--s-2);
+  border: var(--hairline);
+  border-radius: 4px;
+}
+.tx-tokens__text {
+  font-family: var(--font-mono);
+  font-size: var(--t-14);
+  color: var(--fg);
+  overflow-wrap: anywhere;
+}
+.tx-tokens__value {
+  font-size: var(--t-13);
+  color: var(--fg-2);
+  font-variant-numeric: tabular-nums;
+}
+.tx-desc-cell {
+  max-width: 340px;
+  white-space: normal !important;
+}
+.tx-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: var(--t-13);
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.tx-link:hover {
+  text-decoration: underline;
+}
+.tx-batch {
+  display: grid;
+  gap: var(--s-2);
+}
+.tx-batch__input {
+  width: 100%;
+  height: auto;
+  min-height: 160px;
+  padding: var(--s-2) var(--s-3);
+  font-family: var(--font-mono);
+  font-size: var(--t-13);
+  line-height: 1.5;
+  resize: vertical;
+}
+.tx-matrix th,
+.tx-matrix td {
+  padding: 6px 8px;
+  min-width: 40px;
+}
+.tx-matrix tbody th {
+  padding-left: 0;
+  text-align: left;
+}
+.tx-list {
+  display: grid;
+  gap: var(--s-3);
+  max-width: var(--measure);
+  padding-left: 1.2em;
+}
