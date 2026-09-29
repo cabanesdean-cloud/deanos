@@ -575,9 +575,13 @@ def realized_vol(prices: np.ndarray, window: int) -> float:
 
 
 def spot_grid(s: float, k: float, t: float, sigma: float, n: int = 61) -> np.ndarray:
-    """Spot prices spanning about three standard deviations around the strike and spot."""
+    """Spot prices spanning about three standard deviations around the strike and spot.
+
+    The current spot and the strike are always grid points, so charts can mark them exactly.
+    """
     spread = max(0.25, min(3.0 * sigma * math.sqrt(max(t, 1e-6)), 1.5))
-    grid: np.ndarray = np.linspace(min(k, s) * math.exp(-spread), max(k, s) * math.exp(spread), n)
+    base = np.linspace(min(k, s) * math.exp(-spread), max(k, s) * math.exp(spread), n)
+    grid: np.ndarray = np.unique(np.concatenate([base, [s, k]]))
     return grid
 
 
@@ -606,9 +610,20 @@ def value_curves(
 
 
 def price_vs_vol(
-    s: float, k: float, t: float, r: float, q: float, kind: OptionKind, sigma_max: float = 1.5
+    s: float,
+    k: float,
+    t: float,
+    r: float,
+    q: float,
+    kind: OptionKind,
+    sigma_max: float = 1.5,
+    include: float | None = None,
 ) -> dict[str, Any]:
-    vols = [float(v) for v in np.linspace(0.01, sigma_max, 60)]
+    """Black-Scholes-Merton price across volatilities; include adds one exact grid point."""
+    grid = np.linspace(0.01, sigma_max, 60)
+    if include is not None and 0 <= include <= sigma_max:
+        grid = np.unique(np.concatenate([grid, [include]]))
+    vols = [float(v) for v in grid]
     return {"sigma": vols, "price": [bs_price(s, k, t, r, q, v, kind) for v in vols]}
 
 

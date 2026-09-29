@@ -537,7 +537,7 @@ def option_implied_vol(
         return {
             "inputs": {"price": price, "s": s, "k": k, "t": t, "r": r, "q": q, "type": kind},
             **res,
-            "curve": options.price_vs_vol(s, k, t, r, q, kind, sigma_max=top),
+            "curve": options.price_vs_vol(s, k, t, r, q, kind, sigma_max=top, include=res["sigma"]),
         }
 
     return _respond_options(response, _timed(run))

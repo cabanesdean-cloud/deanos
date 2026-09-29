@@ -12,21 +12,35 @@ export const SITE = {
   githubUrl: "https://github.com/cabanesdean-cloud/deanos" as string | null,
 };
 
+export type ProjectId = "deanos" | "options" | "transaction-ml";
+
 export type ProjectLink = {
+  id: ProjectId;
   name: string;
   /** One line for the Projects menu. */
   blurb: string;
   /** Null until the project is live; the menu then shows it as coming soon instead of a dead link. */
   href: string | null;
-  current?: boolean;
 };
 
 /** Portfolio projects shown in the Projects menu. Edit blurbs and links here as projects launch. */
 export const PROJECTS: ProjectLink[] = [
-  { name: "DeanOS", blurb: "Portfolio risk and modeling engine", href: "/", current: true },
-  { name: "Options Pricing", blurb: "Pricing options and comparing the models behind them", href: null },
-  { name: "Transaction ML", blurb: "Machine learning on transaction data", href: null },
+  { id: "deanos", name: "DeanOS", blurb: "Portfolio risk and modeling engine", href: "/" },
+  { id: "options", name: "Options Pricing", blurb: "Pricing options and comparing the models behind them", href: "/options" },
+  { id: "transaction-ml", name: "Transaction ML", blurb: "Machine learning on transaction data", href: null },
 ];
+
+export const OPTIONS_PROJECT = {
+  name: "Options Pricing",
+  tagline: "Monte Carlo Options Pricing Engine",
+  href: "/options",
+};
+
+/** Which project a path (without the /deanos base path) belongs to; drives the menu's "Current" tag. */
+export function projectForPath(pathname: string): ProjectId {
+  if (pathname === "/options" || pathname.startsWith("/options/") || pathname.startsWith("/methodology/options-")) return "options";
+  return "deanos";
+}
 
 export const SECTIONS = [
   { id: "overview", label: "Overview", method: "performance" },

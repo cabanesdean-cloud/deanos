@@ -9,6 +9,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: base, lastModified: now, changeFrequency: "weekly", priority: 1 },
     { url: `${base}/explore`, lastModified: now, changeFrequency: "daily", priority: 0.9 },
+    { url: `${base}/options`, lastModified: now, changeFrequency: "monthly", priority: 0.9 },
     { url: `${base}/methodology`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     ...METHODS.map((m) => ({
       url: `${base}/methodology/${m.slug}`,

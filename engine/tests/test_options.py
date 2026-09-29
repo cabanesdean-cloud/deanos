@@ -399,6 +399,7 @@ def test_realized_vol_recovers_simulated_sigma() -> None:
 def test_value_curves_shape() -> None:
     c = o.value_curves(100, 100, 0.5, 0.05, 0.0, 0.3, "put")
     n = len(c["spot"])
+    assert 100.0 in c["spot"]  # spot and strike are exact grid points
     assert all(len(c[key]) == n for key in ("payoff", "european", "american", "delta", "gamma"))
     assert all(a >= e - 1e-2 for a, e in zip(c["american"], c["european"], strict=True))
     assert all(a >= p - 1e-9 for a, p in zip(c["american"], c["payoff"], strict=True))

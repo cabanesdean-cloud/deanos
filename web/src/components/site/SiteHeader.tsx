@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-import { type ProjectLink, PROJECTS, SITE } from "@/lib/site";
+import { OPTIONS_PROJECT, type ProjectLink, PROJECTS, projectForPath, SITE } from "@/lib/site";
 
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -52,6 +52,8 @@ export function SiteHeader() {
   const closeProjects = () => projects.current?.removeAttribute("open");
 
   const isCurrent = (href: string) => pathname === href || pathname.startsWith(href + "/");
+  const project = projectForPath(pathname);
+  const brand = project === "options" ? { name: OPTIONS_PROJECT.name, href: OPTIONS_PROJECT.href } : { name: SITE.name, href: "/" };
 
   return (
     <header className="site-header">
@@ -70,8 +72,8 @@ export function SiteHeader() {
           <span className="faint" aria-hidden>
             /
           </span>
-          <Link className="site-header__brand" href="/">
-            {SITE.name}
+          <Link className="site-header__brand" href={brand.href as Route}>
+            {brand.name}
           </Link>
         </div>
 
@@ -80,7 +82,7 @@ export function SiteHeader() {
             <summary>Projects</summary>
             <div className="nav-projects__menu">
               {PROJECTS.map((p) => (
-                <ProjectItem key={p.name} project={p} onNavigate={closeProjects} />
+                <ProjectItem key={p.id} project={p} current={p.id === project} onNavigate={closeProjects} />
               ))}
             </div>
           </details>
@@ -119,7 +121,7 @@ export function SiteHeader() {
           <div className="mobile-nav__label">Projects</div>
           <div className="mobile-nav__projects">
             {PROJECTS.map((p) => (
-              <ProjectItem key={p.name} project={p} onNavigate={() => setOpen(false)} />
+              <ProjectItem key={p.id} project={p} current={p.id === project} onNavigate={() => setOpen(false)} />
             ))}
           </div>
         </nav>
@@ -129,11 +131,11 @@ export function SiteHeader() {
 }
 
 /** One project in the Projects menu: name and status on the first line, a short description below. */
-function ProjectItem({ project: p, onNavigate }: { project: ProjectLink; onNavigate: () => void }) {
+function ProjectItem({ project: p, current, onNavigate }: { project: ProjectLink; current: boolean; onNavigate: () => void }) {
   const body = (
     <>
       <span className="menu-item__name">{p.name}</span>
-      {p.current ? (
+      {current ? (
         <span className="menu-item__tag menu-item__tag--current">Current</span>
       ) : !p.href ? (
         <span className="menu-item__tag">Coming soon</span>
@@ -148,7 +150,7 @@ function ProjectItem({ project: p, onNavigate }: { project: ProjectLink; onNavig
       </div>
     );
   return (
-    <Link className="menu-item" href={p.href as Route} aria-current={p.current ? "page" : undefined} onClick={onNavigate}>
+    <Link className="menu-item" href={p.href as Route} aria-current={current ? "page" : undefined} onClick={onNavigate}>
       {body}
     </Link>
   );
