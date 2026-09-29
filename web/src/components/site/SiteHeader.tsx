@@ -19,6 +19,8 @@ export function SiteHeader() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const projects = useRef<HTMLDetailsElement>(null);
+  const toggle = useRef<HTMLButtonElement>(null);
+  const mobileNav = useRef<HTMLElement>(null);
 
   // Close menus after navigation.
   const [lastPath, setLastPath] = useState(pathname);
@@ -48,6 +50,29 @@ export function SiteHeader() {
       document.removeEventListener("keydown", onKey);
     };
   }, []);
+
+  // Phone menu: lock the page behind it, move focus into it, and give focus back
+  // to the button when it closes. It closes itself if the window grows to the
+  // desktop layout, where the menu button does not exist.
+  useEffect(() => {
+    if (!open) return;
+    const root = document.documentElement;
+    const prev = root.style.overflow;
+    root.style.overflow = "hidden";
+    const nav = mobileNav.current;
+    nav?.querySelector<HTMLElement>("a[href]")?.focus({ preventScroll: true });
+    const wide = window.matchMedia("(min-width: 768px)");
+    const onWide = () => wide.matches && setOpen(false);
+    wide.addEventListener("change", onWide);
+    const button = toggle.current;
+    return () => {
+      root.style.overflow = prev;
+      wide.removeEventListener("change", onWide);
+      // The menu is already unmounted here, so focus inside it has fallen back to <body>.
+      const active = document.activeElement;
+      if (button && (!active || active === document.body || nav?.contains(active))) button.focus({ preventScroll: true });
+    };
+  }, [open]);
 
   const closeProjects = () => projects.current?.removeAttribute("open");
 
@@ -98,6 +123,7 @@ export function SiteHeader() {
           <ThemeToggle />
           <button
             type="button"
+            ref={toggle}
             className="icon-button menu-toggle"
             aria-expanded={open}
             aria-controls="mobile-nav"
@@ -111,9 +137,10 @@ export function SiteHeader() {
         </div>
       </div>
       {open && (
-        <nav id="mobile-nav" className="mobile-nav container" aria-label="Main">
+        <nav id="mobile-nav" ref={mobileNav} className="mobile-nav container" aria-label="Main">
           {NAV.map((n) => (
-            <Link key={n.href} href={n.href} aria-current={isCurrent(n.href) ? "page" : undefined}>
+            // Closing on tap also covers links to the page already open, where the path does not change.
+            <Link key={n.href} href={n.href} aria-current={isCurrent(n.href) ? "page" : undefined} onClick={() => setOpen(false)}>
               {n.label}
             </Link>
           ))}

@@ -258,6 +258,9 @@ hr {
   max-width: calc(var(--page) + 2 * var(--gutter));
   margin: 0 auto;
   padding: 0 var(--gutter);
+  /* Notch and rounded corners in landscape (viewport-fit=cover); 0 everywhere else. */
+  padding-left: max(var(--gutter), env(safe-area-inset-left));
+  padding-right: max(var(--gutter), env(safe-area-inset-right));
 }
 
 .prose {
@@ -468,9 +471,11 @@ a.menu-item:focus-visible {
     background-color 120ms var(--ease-out),
     transform 160ms var(--ease-out);
 }
-.icon-button:hover {
-  background: var(--bg-2);
-  color: var(--fg);
+@media (hover: hover) {
+  .icon-button:hover {
+    background: var(--bg-2);
+    color: var(--fg);
+  }
 }
 .icon-button:active {
   transform: scale(0.97);
@@ -516,6 +521,7 @@ a.menu-item:focus-visible {
   border-top: var(--hairline);
   margin-top: var(--s-24);
   padding: var(--s-8) 0 var(--s-10);
+  padding-bottom: calc(var(--s-10) + env(safe-area-inset-bottom));
   font-size: var(--t-13);
   color: var(--fg-2);
 }
@@ -550,8 +556,10 @@ a.menu-item:focus-visible {
     border-color 120ms var(--ease-out),
     transform 160ms var(--ease-out);
 }
-.button:hover {
-  background: var(--bg-2);
+@media (hover: hover) {
+  .button:hover {
+    background: var(--bg-2);
+  }
 }
 .button:active {
   transform: scale(0.97);
@@ -566,8 +574,10 @@ a.menu-item:focus-visible {
   border-color: var(--fg);
   color: var(--bg);
 }
-.button--primary:hover {
-  background: color-mix(in srgb, var(--fg) 86%, var(--bg));
+@media (hover: hover) {
+  .button--primary:hover {
+    background: color-mix(in srgb, var(--fg) 86%, var(--bg));
+  }
 }
 .button--small {
   height: 32px;
@@ -1334,6 +1344,10 @@ dl.facts dd {
   width: 100%;
   font-family: var(--font-mono);
 }
+.tx-amount {
+  display: flex;
+  gap: var(--s-2);
+}
 .tx-presets {
   display: grid;
   gap: 6px;
@@ -1433,4 +1447,435 @@ dl.facts dd {
   gap: var(--s-3);
   max-width: var(--measure);
   padding-left: 1.2em;
+}
+
+/* ─── Phones and touch ──────────────────────────────────────────────────────
+ * Everything below is scoped to small screens (max-width: 767px), touch
+ * input (hover: none / pointer: coarse) or elements that only render there,
+ * so the desktop layout above is untouched. Targets are at least 44 × 44 px
+ * (Apple HIG); form fields are 16 px so iOS Safari does not zoom on focus.
+ */
+
+/* Hints that name the input method: "Hover" with a mouse, "Touch" on phones. */
+.hint-touch,
+.touch-only,
+.mobile-only {
+  display: none;
+}
+@media (hover: none) {
+  .hint-hover {
+    display: none;
+  }
+  .hint-touch {
+    display: inline;
+  }
+  .touch-only {
+    display: block;
+  }
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  a,
+  button,
+  summary,
+  input,
+  select,
+  textarea,
+  label {
+    touch-action: manipulation; /* no double-tap zoom on controls */
+  }
+}
+
+/* Form fields: 16 px text wherever iOS would otherwise zoom into them. */
+@media (max-width: 767px), (hover: none) and (pointer: coarse) {
+  .input,
+  .select,
+  .tx-batch__input {
+    font-size: 16px;
+  }
+  .input,
+  .select {
+    height: 44px;
+  }
+}
+
+@media (max-width: 767px) {
+  /* Header: 44 px targets, brand truncates instead of pushing the buttons off. */
+  .site-header__row {
+    gap: var(--s-2);
+  }
+  .site-header__row > div:first-child {
+    overflow: hidden;
+  }
+  .site-header__brand {
+    display: inline-block;
+    padding: 10px 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .site-header__actions {
+    gap: 0;
+    margin-right: -6px; /* optical: align the icon, not its hit area, with the gutter */
+  }
+  .icon-button {
+    width: 44px;
+    height: 44px;
+  }
+  .icon-button:active {
+    background: var(--bg-2);
+  }
+
+  /* Menu: fits the screen and scrolls on its own; the page behind is locked in JS. */
+  .mobile-nav {
+    max-height: calc(100dvh - 56px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: calc(var(--s-4) + env(safe-area-inset-bottom));
+  }
+  .mobile-nav > a {
+    padding: 14px 0;
+  }
+  .mobile-nav a:active,
+  a.menu-item:active {
+    background: var(--bg-2);
+  }
+
+  .site-footer a,
+  .section__method a {
+    display: inline-block;
+    padding: 12px 6px;
+    margin: -12px -6px;
+    min-width: 44px;
+  }
+  .site-footer__row {
+    row-gap: var(--s-6);
+  }
+
+  /* Buttons, chips, segmented controls, sliders. */
+  .button,
+  .button--small {
+    height: 44px;
+    font-size: var(--t-14);
+  }
+  .chip {
+    height: 44px;
+    padding: 0 var(--s-4);
+    font-size: var(--t-14);
+  }
+  .segmented button {
+    height: 44px;
+    padding: 0 var(--s-4);
+    font-size: var(--t-14);
+  }
+  .segmented button:active {
+    background: var(--bg-3);
+  }
+  .slider input[type="range"] {
+    height: 44px;
+    margin: -8px 0;
+  }
+  details > summary {
+    padding: 12px 0;
+    margin: -12px 0;
+  }
+  .option-bar__seed summary {
+    display: block;
+    margin: -12px 0 -12px;
+  }
+
+  /* One-line chip rows that scroll sideways, with a fade at the edge as the cue. */
+  .demo-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    flex: 1 1 100%;
+    min-width: 0;
+    margin: 0 calc(-1 * var(--gutter));
+    padding: 0 var(--gutter);
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  }
+  .demo-chips::-webkit-scrollbar {
+    display: none;
+  }
+  .demo-chips::after {
+    content: "";
+    flex: 0 0 12px;
+  }
+  .chip {
+    flex: none;
+  }
+
+  /* Landing: what it is, the live chart and every entry point on the first screen. */
+  .hero {
+    display: flex;
+    flex-direction: column;
+    padding: var(--s-5) 0 var(--s-4);
+  }
+  .hero__title {
+    font-size: 2.5rem;
+  }
+  .hero__subtitle {
+    margin-top: var(--s-1);
+    font-size: var(--t-18);
+  }
+  .hero__lede {
+    margin-top: var(--s-3);
+    font-size: var(--t-16);
+  }
+  .hero__actions {
+    margin-top: var(--s-4);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--s-2);
+  }
+  .hero__actions .button {
+    height: 48px;
+    padding: 0 var(--s-2);
+  }
+  .hero__projects {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--s-2);
+    margin-top: var(--s-2);
+  }
+  .hero__projects a {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-2);
+    min-height: 44px;
+    padding: 0 var(--s-3);
+    border: var(--hairline);
+    border-radius: var(--radius);
+    color: var(--fg);
+    font-size: var(--t-14);
+    font-weight: 500;
+    text-decoration: none;
+    transition: transform 160ms var(--ease-out);
+  }
+  .hero__projects a:active {
+    transform: scale(0.97);
+    background: var(--bg-2);
+  }
+  .hero__projects span[aria-hidden] {
+    color: var(--fg-3);
+  }
+  .hero-figure {
+    margin-top: var(--s-5);
+    padding-top: var(--s-4);
+  }
+  .hero__not {
+    order: 10;
+    margin-top: var(--s-5);
+    font-size: var(--t-13);
+  }
+  .three-up {
+    padding: var(--s-8) 0;
+    gap: var(--s-6);
+  }
+
+  .page-head {
+    padding: var(--s-6) 0 var(--s-5);
+  }
+  .page-head p {
+    font-size: var(--t-16);
+  }
+
+  /* Explorer, pricer and classifier bars. */
+  .option-bar {
+    padding: var(--s-4) 0;
+  }
+  .option-bar__row {
+    gap: var(--s-4);
+  }
+  .option-bar__row > .field {
+    flex: 1 1 120px;
+    min-width: 0;
+  }
+  .field__input {
+    width: 100%;
+  }
+  .option-bar__sliders {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--s-4) var(--s-5);
+    margin-top: var(--s-4);
+  }
+  .option-bar__sliders .slider__head {
+    font-size: var(--t-13);
+    gap: var(--s-2);
+  }
+  .tx-form {
+    gap: var(--s-3);
+  }
+  .tx-form__desc {
+    flex-basis: 100%;
+  }
+  .tx-form > .field:not(.tx-form__desc) {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .tx-form > .button {
+    flex: none;
+  }
+  .tx-amount .input {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+  }
+  .tx-sign {
+    flex: none;
+    width: 44px;
+    padding: 0;
+    font-size: var(--t-18);
+  }
+  .tx-presets {
+    margin-top: var(--s-3);
+  }
+  .editor__row {
+    grid-template-columns: minmax(0, 1fr) 88px 44px;
+  }
+  .editor__meta {
+    margin-top: -2px;
+  }
+
+  /* Tables: sideways scroll with an edge shadow as the cue, first column pinned. */
+  .table-wrap {
+    background:
+      linear-gradient(to right, var(--bg) 40%, transparent) left / 20px 100% no-repeat local,
+      linear-gradient(to left, var(--bg) 40%, transparent) right / 20px 100% no-repeat local,
+      radial-gradient(farthest-side at 100% 50%, color-mix(in srgb, var(--fg) 16%, transparent), transparent) right / 10px 100% no-repeat scroll;
+    overscroll-behavior-x: contain;
+  }
+  .table-wrap .table th:first-child,
+  .table-wrap .table td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: var(--bg);
+    max-width: 44vw;
+    white-space: normal;
+    padding-right: var(--s-3);
+  }
+  .table-wrap .table td:first-child {
+    min-width: 9em; /* wrap long row labels at two lines, not three */
+  }
+  @supports (animation-timeline: scroll()) {
+    /* A hairline on the pinned column only once the table has been scrolled. */
+    .table-wrap .table th:first-child,
+    .table-wrap .table td:first-child {
+      animation: pinned-edge linear both;
+      animation-timeline: scroll(nearest inline);
+    }
+  }
+  .table th,
+  .table td {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+  .tx-matrix th,
+  .tx-matrix td {
+    padding: 8px 6px;
+    min-width: 38px;
+  }
+  .tx-link {
+    display: inline-block;
+    min-height: 44px;
+    padding: 12px 0;
+    margin: -10px 0;
+  }
+  .formula {
+    font-size: var(--t-13);
+  }
+
+  /* Methodology sibling pages: one scrolling row instead of three wrapped ones. */
+  .method-nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0 var(--s-5);
+    margin: 0 calc(-1 * var(--gutter));
+    padding: 0 var(--gutter);
+    border-bottom: var(--hairline);
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  }
+  .method-nav::-webkit-scrollbar {
+    display: none;
+  }
+  .method-nav::after {
+    content: "";
+    flex: 0 0 12px;
+  }
+  .method-nav a {
+    flex: none;
+    min-width: 44px;
+    padding: 12px 0;
+    white-space: nowrap;
+  }
+  .method-layout {
+    gap: var(--s-6);
+    padding-top: var(--s-2) !important; /* overrides the inline desktop spacing */
+  }
+
+  /* Touch readouts under charts and the confusion matrix. */
+  .figure__readout {
+    min-height: 1.6em;
+  }
+  .cell-readout {
+    min-height: 1.5em;
+    font-size: var(--t-13);
+    color: var(--fg-2);
+  }
+  .cell-readout b {
+    color: var(--fg);
+    font-weight: 500;
+  }
+}
+@keyframes pinned-edge {
+  from {
+    box-shadow: none;
+  }
+  2%,
+  to {
+    box-shadow: 1px 0 0 var(--rule);
+  }
+}
+@media (min-width: 768px) {
+  .hero__projects {
+    display: none;
+  }
+}
+.hero-skeleton {
+  height: 340px;
+}
+@media (max-width: 767px) {
+  .hero-skeleton {
+    height: 330px; /* title, legend and readout above the 232 px chart */
+  }
+}
+
+/* Section tabs (Explore, Options, Transaction ML): a sticky, thumb-reachable
+   strip wherever they are horizontal (below the desktop sidebar breakpoint). */
+@media (max-width: 999px) {
+  .section-nav {
+    position: sticky;
+    top: 56px;
+    z-index: 10;
+    background: var(--bg);
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    scroll-padding-inline: var(--gutter);
+  }
+  .section-nav::after {
+    content: "";
+    flex: 0 0 12px;
+  }
+  .section-nav a {
+    padding: 12px var(--s-3);
+    white-space: nowrap;
+  }
+  .section-nav a:active {
+    color: var(--fg);
+  }
 }
