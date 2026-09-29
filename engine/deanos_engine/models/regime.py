@@ -25,7 +25,8 @@ Changes from the private model:
   volatility; the names now say so, and each state's return is reported.
 
 Kept: four states; the 95% cap on the reported confidence with the excess
-redistributed; the Gaussian mixture fallback if the HMM fails.
+redistributed (applied to the current reading and to every history date);
+the Gaussian mixture fallback if the HMM fails.
 """
 
 from __future__ import annotations
@@ -81,6 +82,20 @@ def cap_confidence(probs: FloatArray, cap: float = CONFIDENCE_CAP) -> FloatArray
     else:
         p[others] += excess / (p.size - 1)
     return p / p.sum()
+
+
+def cap_history(history: dict[str, Any], cap: float = CONFIDENCE_CAP) -> dict[str, Any]:
+    """Apply ``cap_confidence`` to every history date, as for the current reading.
+
+    Idempotent, so it is safe on a precomputed payload that was already capped.
+    """
+    rows = np.column_stack([np.asarray(history[lab], dtype=np.float64) for lab in LABELS])
+    capped = np.vstack([cap_confidence(row, cap) for row in rows]) if len(rows) else rows
+    out = dict(history)
+    for j, lab in enumerate(LABELS):
+        out[lab] = [float(v) for v in capped[:, j]]
+    out["confidence_cap"] = cap
+    return out
 
 
 def forward_filter(
@@ -292,13 +307,16 @@ def market_regimes(spy_returns: pd.Series, n_starts: int = DEFAULT_STARTS) -> di
             lab: float(1 / (1 - trans[i, i])) if trans[i, i] < 1 else None
             for i, lab in enumerate(LABELS)
         },
-        "history": {
-            "dates": [str(feat.index[i].date()) for i in hist_idx],
-            "step_days": step,
-            **{lab: probs[hist_idx, j] for j, lab in enumerate(LABELS)},
-            # S&P 500 growth of $1 over the same dates, for context in the chart.
-            "spy_growth": np.cumprod(1.0 + r)[hist_idx] / (1.0 + r[0]),
-        },
+        # History probabilities get the same 95% cap as the current reading.
+        "history": cap_history(
+            {
+                "dates": [str(feat.index[i].date()) for i in hist_idx],
+                "step_days": step,
+                **{lab: probs[hist_idx, j] for j, lab in enumerate(LABELS)},
+                # S&P 500 growth of $1 over the same dates, for context in the chart.
+                "spy_growth": np.cumprod(1.0 + r)[hist_idx] / (1.0 + r[0]),
+            }
+        ),
         "stability": stability(fits),
         "sample": {"start": str(feat.index[0].date()), "end": str(feat.index[-1].date())},
         "method_notes": [
@@ -364,6 +382,8 @@ def analyze(
             "spy_return": float(sub["spy"].mean() * TRADING_DAYS) if n >= 20 else None,
         }
     out = {k: v for k, v in market.items() if not k.startswith("_")}
+    # Snapshots precomputed before the history cap existed are capped here too.
+    out["history"] = cap_history(out["history"])
     out["portfolio_by_regime"] = perf
     out["portfolio_window"] = {
         "start": str(joined.index[0].date()) if len(joined) else None,

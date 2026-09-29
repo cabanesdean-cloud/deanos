@@ -26,6 +26,25 @@ def test_cap_confidence_leaves_low_confidence_alone() -> None:
     np.testing.assert_allclose(regime.cap_confidence(p), p)
 
 
+def test_cap_history_caps_every_date_and_is_idempotent() -> None:
+    hist = {
+        "dates": ["2020-01-01", "2020-01-08"],
+        "calm": [1.0, 0.4],
+        "normal": [0.0, 0.3],
+        "volatile": [0.0, 0.2],
+        "crisis": [0.0, 0.1],
+    }
+    out = regime.cap_history(hist)
+    np.testing.assert_allclose(
+        [out[lab][0] for lab in regime.LABELS], [0.95, 0.05 / 3, 0.05 / 3, 0.05 / 3]
+    )
+    np.testing.assert_allclose([out[lab][1] for lab in regime.LABELS], [0.4, 0.3, 0.2, 0.1])
+    assert out["confidence_cap"] == 0.95
+    again = regime.cap_history(out)
+    for lab in regime.LABELS:
+        np.testing.assert_allclose(again[lab], out[lab])
+
+
 def test_forward_filter_matches_brute_force() -> None:
     """P(s_t | x_1..t) by enumerating every state path on a tiny model."""
     start = np.array([0.6, 0.4])
@@ -83,6 +102,9 @@ def test_market_regimes_on_synthetic_spy() -> None:
     probs = out["current"]["probabilities"]
     assert sum(probs.values()) == pytest.approx(1.0)
     assert max(probs.values()) <= 0.95 + 1e-12
+    hist = np.column_stack([out["history"][lab] for lab in regime.LABELS])
+    assert hist.max() <= 0.95 + 1e-12
+    np.testing.assert_allclose(hist.sum(axis=1), 1.0)
     st = out["stability"]
     lls = [row["log_likelihood"] for row in st["starts"]]
     assert lls == sorted(lls, reverse=True)
@@ -110,3 +132,16 @@ def test_payload_round_trip_and_precomputed_use() -> None:
     assert fresh["sample"]["end"] == payload["sample"]["end"]
     used = regime.analyze(spy, spy, precomputed={**payload, "model": "precomputed-marker"})
     assert used["model"] == "precomputed-marker"
+    # A payload stored before the history cap is capped on the way out.
+    uncapped = {
+        **payload,
+        "history": {
+            **payload["history"],
+            "calm": [1.0] * len(payload["history"]["dates"]),
+            "normal": [0.0] * len(payload["history"]["dates"]),
+            "volatile": [0.0] * len(payload["history"]["dates"]),
+            "crisis": [0.0] * len(payload["history"]["dates"]),
+        },
+    }
+    capped = regime.analyze(spy, spy, precomputed=uncapped)
+    assert max(capped["history"]["calm"]) == pytest.approx(0.95)
