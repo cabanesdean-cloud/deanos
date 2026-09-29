@@ -23,6 +23,7 @@ Home: [deancabanes.com/deanos](https://deancabanes.com/deanos).
 - [Security and privacy](#security-and-privacy)
 - [Screenshots](#screenshots)
 - [How this was built](#how-this-was-built)
+- [License](#license)
 
 ## What it is
 
@@ -201,3 +202,7 @@ cd web && npm run typecheck && npm run lint && npm run build
 ## How this was built
 
 I used AI coding assistants (Claude) throughout, the way many developers now do. The work that mattered was mine to do: deciding what the tool should answer, choosing the models and their assumptions, checking every result against reference implementations and published formulas, and deciding what to change when something didn't hold up. Rebuilding DeanOS for the public is where most of that happened: re-examining each model turned up a duplicated VaR method, a mislabeled volatility forecast and an unstable regime fit, and each fix is documented on the methodology pages.
+
+## License
+
+Code is released under the [MIT License](LICENSE). Market data belongs to its providers and is not redistributed in this repository.
