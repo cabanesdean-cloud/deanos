@@ -1564,6 +1564,7 @@ dl.facts dd {
   }
   .segmented button {
     height: 44px;
+    min-width: 44px;
     padding: 0 var(--s-4);
     font-size: var(--t-14);
   }
@@ -1714,6 +1715,7 @@ dl.facts dd {
   .tx-form > .field:not(.tx-form__desc) {
     flex: 1 1 0;
     min-width: 0;
+    grid-template-columns: minmax(0, 1fr); /* let the amount row shrink beside the button */
   }
   .tx-form > .button {
     flex: none;
@@ -1759,6 +1761,9 @@ dl.facts dd {
   }
   .table-wrap .table td:first-child {
     min-width: 9em; /* wrap long row labels at two lines, not three */
+  }
+  .table-wrap .table td.tx-desc-cell:first-child {
+    min-width: 44vw; /* statement descriptors: as wide as the pinned column may be */
   }
   @supports (animation-timeline: scroll()) {
     /* A hairline on the pinned column only once the table has been scrolled. */
