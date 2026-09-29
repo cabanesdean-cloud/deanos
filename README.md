@@ -14,6 +14,7 @@ Home: [deancabanes.com/deanos](https://deancabanes.com/deanos).
 - [Why I built it](#why-i-built-it)
 - [Features](#features)
 - [Options Pricing](#options-pricing)
+- [Transaction ML](#transaction-ml)
 - [Architecture](#architecture)
 - [Quantitative models](#quantitative-models)
 - [Validation](#validation)
@@ -68,6 +69,28 @@ A second project on the same engine and design system, at [`/deanos/options`](ht
 
 API: `GET /deanos/api/options/{price,montecarlo,asian,implied-vol,historical-vol,validation}` with every input in the query string (paths, steps and averaging dates are capped). Checks: Hull's textbook examples (prices, Greeks, the five-step American put, implied volatility), put-call parity, Greeks against finite differences, Monte Carlo 95% intervals covering the exact price about 95% of the time over 1,000 runs, binomial convergence to Black-Scholes, American put ≥ European put, American call without dividends = European, and implied-volatility round trips. Four methodology pages cover the assumptions and limits.
 
+## Transaction ML
+
+A third project, at [`/deanos/transactions`](https://deancabanes.com/deanos/transactions): an explainable classifier that sorts bank-statement descriptors such as `SQ *BLUE BOTTLE COFFEE` or `UBER *TRIP` into 14 spending categories. Type a descriptor (and optionally an amount) and the page shows the category, a calibrated confidence, the runners-up, and how much each word and the amount pushed the decision.
+
+Every transaction is synthetic. A seeded generator (`engine/deanos_engine/models/transactions_synth.py`) invents 24,000 descriptors from about 210 public brand names and procedurally generated local businesses, with processor prefixes, store numbers, cities, truncation, casing noise, per-category amounts and a few genuinely ambiguous chains. No real account data is used anywhere.
+
+| Section | What it shows | Method |
+|---|---|---|
+| Prediction | Category, confidence, runners-up and a per-word explanation | Character 3-5-gram and word TF-IDF plus amount flags; multinomial logistic regression; temperature scaling; exact additive contributions |
+| Samples & batch | Generated transactions, and up to 25 of your own categorized at once | Seeded generator, split by merchant group |
+| Confusion matrix | Which categories get mixed up on unseen merchants | Test-set confusion counts |
+| Per-class results | Which categories are easy and which are hard | Precision, recall and F1 per category |
+| Calibration | Whether 80% confidence means 80% right | Reliability diagram, expected calibration error, coverage-accuracy trade-off |
+| Baselines & leakage | The model against a majority guess and hand-written keyword rules, and against a leaky random split | Accuracy, macro-F1, merchant-level bootstrap intervals |
+| Limitations | Where it fails | Accuracy by merchant type, missing amounts |
+
+**Leakage control.** Train, validation and test are split by merchant group (a merchant and its sister brands land in one split), so every test merchant is new to the model. The same model scored on a random row split, where the test merchants were all seen in training, looks far better; the page shows both numbers.
+
+**Serving.** Training runs offline (`scripts/build_transactions_model.py`, scikit-learn, deterministic). The weights ship with the engine as a 0.9 MB JSON artifact with float16 coefficients, and inference runs in NumPy, so there is no data snapshot, database or extra runtime dependency.
+
+API: `GET /deanos/api/transactions/{categorize,batch,metrics,examples}` (`categorize?d=<descriptor>&a=<amount>`; batch takes up to 25 `d`/`a` pairs; descriptors up to 200 characters). Checks: generator determinism and zero merchant overlap between splits, explanations that add up exactly to the model's score, probabilities that sum to one, published metrics recomputed from the stored weights, metric code against scikit-learn, byte-for-byte reproducible training, and fuzzed hostile input (never a 500). Four methodology pages cover the data, the model, the evaluation and the limits, with live numbers.
+
 ## Architecture
 
 ```mermaid
@@ -100,12 +123,13 @@ deanos/
 │       └── lib/             API client, formatting, types
 ├── engine/                  Python package + FastAPI app + tests
 │   ├── deanos_engine/
-│   │   ├── models/          metrics, garch, var, montecarlo, regime, factors, stress, compare, options
+│   │   ├── models/          metrics, garch, var, montecarlo, regime, factors, stress, compare, options, transactions
 │   │   ├── data/            snapshot format and loading
 │   │   └── api.py
 │   └── tests/
 ├── scripts/
 │   ├── refresh_data.py      builds the snapshot
+│   ├── build_transactions_model.py  trains the Transaction ML artifact
 │   └── hooks/pre-commit     secret scan + private denylist
 ├── .github/workflows/       CI and nightly data refresh
 └── vercel.json
@@ -127,7 +151,7 @@ The methodology pages also list what changed from the original personal version 
 
 ## Validation
 
-- **Over 450 engine tests** (including the options pricer's). Models are checked against exact values and independent implementations: GARCH forecast paths against `arch`, the HMM forward filter against brute-force enumeration of state paths, the Kupiec statistic against a hand calculation, Newey-West errors against `statsmodels`, variance contributions summing to the total, and block bootstrap preserving volatility clustering that an i.i.d. bootstrap destroys.
+- **Over 550 engine tests** (including the options pricer's and the transaction classifier's). Models are checked against exact values and independent implementations: GARCH forecast paths against `arch`, the HMM forward filter against brute-force enumeration of state paths, the Kupiec statistic against a hand calculation, Newey-West errors against `statsmodels`, variance contributions summing to the total, and block bootstrap preserving volatility clustering that an i.i.d. bootstrap destroys.
 - **Real-data checks against known history.** SPY's replayed declines match the published figures for the dot-com bust, the financial crisis, COVID and 2022; SPY loads about 1.0 on the market factor with R² above 0.97; IWM loads positively on size; the value ETF loads more on value than the growth ETF; the regime model labels autumn 2008 and March 2020 as crisis and 2017 as calm or normal.
 - **Out-of-sample VaR backtests.** On the example portfolios (data through September 2026), filtered historical and historical VaR breach close to the expected 5% of days over three years and pass both tests; the normal-distribution method breaches too rarely for two of the three portfolios. The methodology pages show these results live from the current data.
 - **Robustness.** Edge-case portfolios (one holding, 25 holdings, recent listings, extreme weights) through every endpoint, hostile inputs, and property-based fuzzing of the parser and API. No input produces a server error.
