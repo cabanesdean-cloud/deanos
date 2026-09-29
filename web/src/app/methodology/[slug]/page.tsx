@@ -5,8 +5,8 @@ import { notFound } from "next/navigation";
 import { Validation } from "@/components/methodology/Validation";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { JsonLd } from "@/components/site/JsonLd";
-import { getMethod, METHODS } from "@/content/methodology";
-import { SITE } from "@/lib/site";
+import { getMethod, groupOf, METHODS } from "@/content/methodology";
+import { OPTIONS_PROJECT, SITE } from "@/lib/site";
 
 export function generateStaticParams() {
   return METHODS.map((m) => ({ slug: m.slug }));
@@ -22,7 +22,12 @@ export async function generateMetadata(props: PageProps<"/methodology/[slug]">):
     title: m.title,
     description: m.summary,
     alternates: { canonical: `/methodology/${m.slug}` },
-    openGraph: { type: "article", title: `${m.title} · DeanOS`, description: m.summary, url: `/methodology/${m.slug}` },
+    openGraph: {
+      type: "article",
+      title: `${m.title} · ${groupOf(m) === "options" ? OPTIONS_PROJECT.name : SITE.name}`,
+      description: m.summary,
+      url: `/methodology/${m.slug}`,
+    },
   };
 }
 
@@ -42,6 +47,11 @@ export default async function MethodPage(props: PageProps<"/methodology/[slug]">
   if (!m) notFound();
 
   const url = `${SITE.origin}${SITE.basePath}/methodology/${m.slug}`;
+  const group = groupOf(m);
+  const app =
+    group === "options"
+      ? { name: OPTIONS_PROJECT.name, url: `${SITE.origin}${SITE.basePath}${OPTIONS_PROJECT.href}` }
+      : { name: SITE.name, url: `${SITE.origin}${SITE.basePath}` };
   return (
     <div className="container">
       <JsonLd
@@ -52,7 +62,7 @@ export default async function MethodPage(props: PageProps<"/methodology/[slug]">
           description: m.summary,
           url,
           author: { "@type": "Person", name: SITE.owner },
-          isPartOf: { "@type": "WebApplication", name: SITE.name, url: `${SITE.origin}${SITE.basePath}` },
+          isPartOf: { "@type": "WebApplication", ...app },
           citation: m.references,
           inLanguage: "en",
         }}
@@ -62,7 +72,7 @@ export default async function MethodPage(props: PageProps<"/methodology/[slug]">
           <Link href="/methodology" className="small">
             All models
           </Link>
-          {METHODS.map((x) => (
+          {METHODS.filter((x) => groupOf(x) === group).map((x) => (
             <Link key={x.slug} href={`/methodology/${x.slug}` as never} aria-current={x.slug === m.slug ? "page" : undefined}>
               {x.short}
             </Link>
@@ -83,7 +93,7 @@ export default async function MethodPage(props: PageProps<"/methodology/[slug]">
           {m.formula && (
             <>
               <h3>Formulas</h3>
-              <div className="formula" role="figure" aria-label="Formulas">
+              <div className="formula" role="figure" aria-label="Formulas" tabIndex={0}>
                 {m.formula.replace(/ {2,}/g, "   ")}
               </div>
             </>
@@ -124,7 +134,7 @@ export default async function MethodPage(props: PageProps<"/methodology/[slug]">
             ))}
           </ul>
           <p className="small">
-            <Link href="/explore">See it on a portfolio</Link>
+            {group === "options" ? <Link href="/options">Try it in the options pricer</Link> : <Link href="/explore">See it on a portfolio</Link>}
           </p>
         </article>
       </div>

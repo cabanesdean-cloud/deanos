@@ -13,6 +13,7 @@ Home: [deancabanes.com/deanos](https://deancabanes.com/deanos).
 - [What it is](#what-it-is)
 - [Why I built it](#why-i-built-it)
 - [Features](#features)
+- [Options Pricing](#options-pricing)
 - [Architecture](#architecture)
 - [Quantitative models](#quantitative-models)
 - [Validation](#validation)
@@ -52,6 +53,21 @@ DeanOS started as a personal tool. This is the public version: rebuilt, retested
 
 Portfolios live only in the page address (`/deanos/explore?p=VTI:60,AGG:40`). Nothing is stored and no cookies are set.
 
+## Options Pricing
+
+A second project on the same engine and design system, at [`/deanos/options`](https://deancabanes.com/deanos/options): a Monte Carlo options pricing engine built from scratch. Set spot, strike, expiry, rates, dividend yield and volatility (or seed spot and volatility from any ticker in the nightly snapshot), and the page prices the option several ways and shows where they agree.
+
+| Section | What it shows | Method |
+|---|---|---|
+| Price | One option priced by formula, simulation and tree; value against spot | Black-Scholes-Merton with dividend yield; Monte Carlo; CRR binomial |
+| Monte Carlo | The estimate and its 95% interval shrinking as paths are added | GBM, antithetic variates, control variate (discounted terminal price) |
+| Greeks | Delta, gamma, vega, theta, rho, and each across spot prices | Analytic BSM Greeks |
+| Early exercise | What the American right is worth and where exercising now is optimal | Binomial tree, American vs European on the same tree |
+| Implied volatility | The volatility behind an observed price | Newton-Raphson safeguarded by bisection, no-arbitrage bounds |
+| Asian option | Why simulation matters when there is no formula | Arithmetic-average Monte Carlo with a geometric-average control variate |
+
+API: `GET /deanos/api/options/{price,montecarlo,asian,implied-vol,historical-vol,validation}` with every input in the query string (paths, steps and averaging dates are capped). Checks: Hull's textbook examples (prices, Greeks, the five-step American put, implied volatility), put-call parity, Greeks against finite differences, Monte Carlo 95% intervals covering the exact price about 95% of the time over 1,000 runs, binomial convergence to Black-Scholes, American put ≥ European put, American call without dividends = European, and implied-volatility round trips. Four methodology pages cover the assumptions and limits.
+
 ## Architecture
 
 ```mermaid
@@ -84,7 +100,7 @@ deanos/
 │       └── lib/             API client, formatting, types
 ├── engine/                  Python package + FastAPI app + tests
 │   ├── deanos_engine/
-│   │   ├── models/          metrics, garch, var, montecarlo, regime, factors, stress, compare
+│   │   ├── models/          metrics, garch, var, montecarlo, regime, factors, stress, compare, options
 │   │   ├── data/            snapshot format and loading
 │   │   └── api.py
 │   └── tests/
@@ -111,7 +127,7 @@ The methodology pages also list what changed from the original personal version 
 
 ## Validation
 
-- **169 engine tests.** Models are checked against exact values and independent implementations: GARCH forecast paths against `arch`, the HMM forward filter against brute-force enumeration of state paths, the Kupiec statistic against a hand calculation, Newey-West errors against `statsmodels`, variance contributions summing to the total, and block bootstrap preserving volatility clustering that an i.i.d. bootstrap destroys.
+- **Over 450 engine tests** (including the options pricer's). Models are checked against exact values and independent implementations: GARCH forecast paths against `arch`, the HMM forward filter against brute-force enumeration of state paths, the Kupiec statistic against a hand calculation, Newey-West errors against `statsmodels`, variance contributions summing to the total, and block bootstrap preserving volatility clustering that an i.i.d. bootstrap destroys.
 - **Real-data checks against known history.** SPY's replayed declines match the published figures for the dot-com bust, the financial crisis, COVID and 2022; SPY loads about 1.0 on the market factor with R² above 0.97; IWM loads positively on size; the value ETF loads more on value than the growth ETF; the regime model labels autumn 2008 and March 2020 as crisis and 2017 as calm or normal.
 - **Out-of-sample VaR backtests.** On the example portfolios (data through September 2026), filtered historical and historical VaR breach close to the expected 5% of days over three years and pass both tests; the normal-distribution method breaches too rarely for two of the three portfolios. The methodology pages show these results live from the current data.
 - **Robustness.** Edge-case portfolios (one holding, 25 holdings, recent listings, extreme weights) through every endpoint, hostile inputs, and property-based fuzzing of the parser and API. No input produces a server error.

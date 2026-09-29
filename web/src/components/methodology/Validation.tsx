@@ -8,6 +8,8 @@ import { int, num, pct, range } from "@/lib/format";
 import type { Demo, Factors, Overview, Regimes, Risk, Simulation, Stress, Volatility } from "@/lib/types";
 import type { ValidationKind } from "@/content/methodology";
 
+import { OptionsValidationTable } from "./OptionsValidation";
+
 /** Fetch one section for each example portfolio. */
 function useDemoResults<T>(path: string | null, extra: Record<string, string> = {}) {
   const demos = useApi<{ demos: Demo[] }>(apiUrl("demos"));
@@ -315,6 +317,11 @@ export function Validation({ kind }: { kind: ValidationKind }) {
       return <FactorValidation />;
     case "stress":
       return <StressValidation />;
+    case "options-bs":
+    case "options-mc":
+    case "options-binomial":
+    case "options-iv":
+      return <OptionsValidationTable kind={kind} />;
     default:
       return null;
   }
