@@ -22,8 +22,8 @@ export const SITE = {
  * infer an address from the domain or guess a profile URL.
  */
 export const CONTACT = {
-  email: null as string | null,
-  linkedinUrl: null as string | null,
+  email: "cabanesdean@gmail.com" as string | null,
+  linkedinUrl: "https://www.linkedin.com/in/dean-cabanes-3504aa367" as string | null,
   /** Path or URL of a résumé PDF Dean has supplied. */
   resumeUrl: null as string | null,
 };

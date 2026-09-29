@@ -5,7 +5,7 @@ import { JsonLd } from "@/components/site/JsonLd";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { THEME_SCRIPT } from "@/components/site/ThemeToggle";
-import { HOME_URL, PERSON, SITE, SITE_URL } from "@/lib/site";
+import { CONTACT, HOME_URL, PERSON, SITE, SITE_URL } from "@/lib/site";
 
 import "./globals.css";
 
@@ -60,7 +60,7 @@ const STRUCTURED_DATA = {
       name: SITE.owner,
       description: PERSON.description,
       url: HOME_URL,
-      ...(SITE.githubUrl ? { sameAs: [SITE.githubUrl] } : {}),
+      sameAs: [SITE.githubUrl, CONTACT.linkedinUrl].filter((u): u is string => Boolean(u)),
     },
     {
       "@type": "WebApplication",
