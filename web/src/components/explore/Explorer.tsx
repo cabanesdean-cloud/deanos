@@ -47,6 +47,8 @@ export function Explorer() {
 
   const demosRes = useApi<{ demos: Demo[] }>(apiUrl("demos"));
   const demos = demosRes.data?.demos ?? [];
+  // For the "compare" starting point: the first example portfolio that is not this one.
+  const compareWith = demos.find((d) => toSpec(parseSpec(d.p)) !== canonical);
 
   const href = useCallback(
     (next: { p?: string; s?: SectionId; edit?: boolean }) => {
@@ -82,6 +84,22 @@ export function Explorer() {
             </Link>
           ))}
         </nav>
+        {section === "overview" && (
+          <nav className="guided" aria-label="Suggested starting points">
+            <span className="guided__label">Start with</span>
+            <Link className="chip" href={href({ s: "risk" }) as never} scroll={false}>
+              Which holdings drive risk
+            </Link>
+            <Link className="chip" href={href({ s: "stress" }) as never} scroll={false}>
+              A historical crash
+            </Link>
+            {compareWith && (
+              <Link className="chip" href={`/explore?p=${encodeURIComponent(canonical)}&s=compare&b=${encodeURIComponent(compareWith.p)}` as never} scroll={false}>
+                Compare with {compareWith.name}
+              </Link>
+            )}
+          </nav>
+        )}
         <div key={`${section}:${canonical}`} style={{ minWidth: 0 }}>
           <ErrorBoundary label={SECTIONS.find((s) => s.id === section)?.label ?? section}>
             {RENDER[section]({ spec: canonical, demos })}

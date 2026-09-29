@@ -12,6 +12,7 @@ import type { DataQuality } from "@/lib/types";
 export function SectionFrame({
   title,
   answer,
+  headline,
   children,
   method,
   methodLabel,
@@ -21,6 +22,8 @@ export function SectionFrame({
 }: {
   title: string;
   answer: ReactNode;
+  /** Optional compact metrics shown before the answer, which then renders as smaller supporting text. */
+  headline?: ReactNode;
   children: ReactNode;
   method: string;
   methodLabel: string;
@@ -32,7 +35,8 @@ export function SectionFrame({
     <article className={`section${stale ? " is-stale" : ""}`} aria-busy={stale || undefined}>
       <header className="section__head">
         <h2 className="section__eyebrow">{title}</h2>
-        <p className="section__answer">{answer}</p>
+        {headline}
+        <p className={`section__answer${headline ? " section__answer--compact" : ""}`}>{answer}</p>
         {quality && quality.limited_by.length > 0 && (
           <Notice>
             History starts on {date(quality.start)} because {quality.limited_by.join(", ")}{" "}

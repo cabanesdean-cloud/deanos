@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { LineChart } from "@/components/charts/LineChart";
 import { HeatTable } from "@/components/charts/HeatTable";
 import { isoToTime } from "@/components/charts/axes";
@@ -26,6 +28,14 @@ export function OverviewSection({ spec }: SectionProps) {
           ? `and took until ${date(dd.recovery)} to recover`
           : "and has not fully recovered";
         const holdings = [...d.holdings].sort((a, b) => b.weight - a.weight);
+        // Data-driven takeaway: the holding whose share of risk most exceeds its weight.
+        const over = holdings
+          .map((h) => ({ t: h.ticker, w: h.weight, r: m.risk_contributions[h.ticker] ?? 0 }))
+          .sort((a, b) => b.r - b.w - (a.r - a.w))[0];
+        const takeaway =
+          holdings.length > 1 && over && over.r - over.w >= 0.05
+            ? `${over.t} is ${pct(over.w, 0)} of the portfolio but about ${pct(over.r, 0)} of its day-to-day risk.`
+            : null;
         return (
           <SectionFrame
             title="Overview"
@@ -34,11 +44,30 @@ export function OverviewSection({ spec }: SectionProps) {
             methodLabel="performance and risk metrics"
             quality={d.data_quality}
             asOf={d.as_of}
+            headline={
+              <div className="headline-metrics">
+                <div>
+                  <div className="headline-metric__label">Annual return</div>
+                  <div className="headline-metric__value">{pct(m.cagr)}</div>
+                </div>
+                <div>
+                  <div className="headline-metric__label">Volatility</div>
+                  <div className="headline-metric__value">{pct(m.volatility)}</div>
+                </div>
+                <div>
+                  <div className="headline-metric__label">Worst fall</div>
+                  <div className="headline-metric__value">{pct(dd.depth)}</div>
+                  <div className="headline-metric__range">
+                    {date(dd.peak)} to {date(dd.trough)}
+                  </div>
+                </div>
+              </div>
+            }
             answer={
               <>
-                Over the last {years(d.data_quality.trading_days)}, this portfolio grew about {pct(m.cagr)} a year,
-                with typical yearly swings of {pct(m.volatility)}. Its worst fall was {pct(Math.abs(dd.depth))}, from{" "}
-                {date(dd.peak)} to {date(dd.trough)}, {recovered}.
+                Over the last {years(d.data_quality.trading_days)}, this portfolio grew about {pct(m.cagr)} a year, with
+                typical yearly swings of {pct(m.volatility)}. Its worst fall {recovered}.
+                {takeaway && <> {takeaway}</>}
               </>
             }
           >
@@ -81,7 +110,12 @@ export function OverviewSection({ spec }: SectionProps) {
 
             <Block
               title="Key numbers"
-              caption={`Ranges are ${pct(iv.level.high - iv.level.low, 0)} block-bootstrap intervals: they show how much each figure depends on which days happened to be in the sample, not how the future will turn out.`}
+              caption={
+                <>
+                  Ranges are {pct(iv.level.high - iv.level.low, 0)} block-bootstrap intervals: they show how much each figure depends on which days happened to be in the sample, not how the future will turn out. The up- and down-day betas are conditional slopes; the{" "}
+                  <Link href="/beta">Nonlinear Beta Tracker</Link> looks at how one holding&apos;s sensitivity changes with the market&apos;s move.
+                </>
+              }
             >
               <StatGrid>
                 <Stat label="Annual return (CAGR)" value={pct(m.cagr)} range={range(iv.cagr.low, iv.cagr.high)} />
