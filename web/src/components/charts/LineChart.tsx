@@ -192,7 +192,14 @@ export function LineChart({
   return (
     <div className="chart" ref={ref}>
       <div className="figure__readout" aria-live="polite">
-        {hi != null ? (readout ?? defaultReadout)(hi) : <span className="faint">Hover or use arrow keys to read values</span>}
+        {hi != null ? (
+          (readout ?? defaultReadout)(hi)
+        ) : (
+          <span className="faint">
+            <span className="hint-hover">Hover or use arrow keys to read values</span>
+            <span className="hint-touch">Touch and drag across the chart to read values</span>
+          </span>
+        )}
       </div>
       {width > 0 && (
         <svg
@@ -275,7 +282,8 @@ export function LineChart({
               fill="transparent"
               onPointerMove={onMove}
               onPointerDown={onMove}
-              onPointerLeave={() => setHover(null)}
+              // Mouse: the readout follows the cursor. Touch: it stays on the last point read.
+              onPointerLeave={(e) => e.pointerType === "mouse" && setHover(null)}
             />
           </g>
         </svg>

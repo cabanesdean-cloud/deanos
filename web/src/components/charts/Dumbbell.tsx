@@ -73,7 +73,7 @@ export function Dumbbell({
                   key={r.id}
                   style={{ cursor: onSelect ? "pointer" : undefined }}
                   onPointerEnter={() => setHover(r.id)}
-                  onPointerLeave={() => setHover(null)}
+                  onPointerLeave={(e) => e.pointerType === "mouse" && setHover(null)}
                   onClick={() => onSelect?.(r.id)}
                 >
                   <rect x={-labelW} y={cy - rowH / 2} width={width} height={rowH} fill={isActive ? "var(--bg-2)" : "transparent"} />

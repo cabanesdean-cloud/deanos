@@ -76,7 +76,7 @@ export function IntervalPlot({
                 <g
                   key={r.id}
                   onPointerEnter={() => setHover(r.id)}
-                  onPointerLeave={() => setHover(null)}
+                  onPointerLeave={(e) => e.pointerType === "mouse" && setHover(null)}
                   opacity={hover && !active ? 0.55 : 1}
                 >
                   <rect x={-labelW} y={cy - rowHeight / 2} width={width} height={rowHeight} fill="transparent" />

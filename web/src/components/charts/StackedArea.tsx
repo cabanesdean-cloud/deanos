@@ -83,7 +83,10 @@ export function StackedArea({
             {readoutExtra?.(hover)}
           </>
         ) : (
-          <span className="faint">Hover or use arrow keys to read values</span>
+<span className="faint">
+            <span className="hint-hover">Hover or use arrow keys to read values</span>
+            <span className="hint-touch">Touch and drag across the chart to read values</span>
+          </span>
         )}
       </div>
       {width > 0 ? (
@@ -103,7 +106,7 @@ export function StackedArea({
               </text>
             ))}
             {hover != null && <line className="crosshair" x1={xs(new Date(x[hover]))} x2={xs(new Date(x[hover]))} y2={innerH} style={{ stroke: "var(--fg)" }} />}
-            <rect width={innerW} height={innerH} fill="transparent" onPointerMove={onMove} onPointerDown={onMove} onPointerLeave={() => setHover(null)} />
+            <rect width={innerW} height={innerH} fill="transparent" onPointerMove={onMove} onPointerDown={onMove} onPointerLeave={(e) => e.pointerType === "mouse" && setHover(null)} />
           </g>
         </svg>
       ) : (

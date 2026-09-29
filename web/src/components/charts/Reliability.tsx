@@ -95,7 +95,7 @@ export function Reliability({
                     strokeWidth={s.hollow ? 1.5 : 1}
                     opacity={hover && hover !== s.id + ":" + i ? 0.5 : 1}
                     onPointerEnter={() => setHover(s.id + ":" + i)}
-                    onPointerLeave={() => setHover(null)}
+                    onPointerLeave={(e) => e.pointerType === "mouse" && setHover(null)}
                   />
                 ),
               ),

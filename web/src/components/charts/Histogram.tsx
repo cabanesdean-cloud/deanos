@@ -32,6 +32,14 @@ export function Histogram({
   const y = scaleLinear().domain([0, Math.max(...counts)]).range([innerH, 0]);
   const total = counts.reduce((a, b) => a + b, 0);
   const ticks = x.ticks(Math.max(2, Math.floor(innerW / 90)));
+  // Touch: read the bar under the finger anywhere in the chart, so thin bars need no precise tap.
+  const onTouch = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (e.pointerType === "mouse") return;
+    const v = x.invert(e.clientX - e.currentTarget.getBoundingClientRect().left - margin.left);
+    let i = 0;
+    while (i < counts.length - 1 && v >= edges[i + 1]) i++;
+    setHover(i);
+  };
 
   return (
     <div className="chart" ref={ref}>
@@ -42,11 +50,21 @@ export function Histogram({
             <b style={{ color: "var(--fg)", fontWeight: 500 }}>{((counts[hover] / total) * 100).toFixed(1)}%</b> of outcomes
           </span>
         ) : (
-          <span className="faint">Hover a bar to read it</span>
+          <span className="faint">
+            <span className="hint-hover">Hover a bar to read it</span>
+            <span className="hint-touch">Tap or drag across the bars to read them</span>
+          </span>
         )}
       </div>
       {width > 0 ? (
-        <svg width={width} height={height} role="img" aria-label={ariaLabel}>
+        <svg
+          width={width}
+          height={height}
+          role="img"
+          aria-label={ariaLabel}
+          onPointerDown={onTouch}
+          onPointerMove={onTouch}
+        >
           <g transform={`translate(${margin.left},${margin.top})`}>
             {counts.map((c, i) => {
               const x0 = x(edges[i]);
@@ -62,7 +80,7 @@ export function Histogram({
                   fill={colorFor ? colorFor(edges[i], edges[i + 1]) : "var(--series-1)"}
                   opacity={hover == null || hover === i ? 1 : 0.5}
                   onPointerEnter={() => setHover(i)}
-                  onPointerLeave={() => setHover(null)}
+                  onPointerLeave={(e) => e.pointerType === "mouse" && setHover(null)}
                 />
               );
             })}

@@ -26,6 +26,8 @@ function topMistakes(m: number[][], n = 3) {
 export function ConfusionSection() {
   const state = useMetrics();
   const [which, setWhich] = useState<Which>("model");
+  // Touch has no hover titles: a tapped cell is described under the matrix instead.
+  const [cell, setCell] = useState<{ i: number; j: number } | null>(null);
   if (state.status !== "ready") return <MetricsLoading state={state} />;
   const d = state.data;
   const cats = d.categories;
@@ -59,8 +61,9 @@ export function ConfusionSection() {
         caption={
           <>
             Each row is one true category; its cells count where those transactions were sent. Shading is the share of the row, so
-            a dark diagonal means high recall and dark cells off it are systematic mistakes. Column headers are abbreviated; hover
-            or focus one for the full name. The keyword baseline sends everything its rules miss to {labelOf(cats, d.metrics.majority.category)}{" "}
+            a dark diagonal means high recall and dark cells off it are systematic mistakes. Column headers are abbreviated;{" "}
+            <span className="hint-hover">hover or focus one for the full name.</span>
+            <span className="hint-touch">tap a cell for the full names.</span> The keyword baseline sends everything its rules miss to {labelOf(cats, d.metrics.majority.category)}{" "}
             (the most common training category), which is the dark column in its matrix.
           </>
         }
@@ -109,6 +112,7 @@ export function ConfusionSection() {
                       return (
                         <td
                           key={j}
+                          onClick={() => setCell({ i, j })}
                           title={`${cats[i].label} predicted as ${cats[j].label}: ${v} of ${total}`}
                           style={{
                             background: v ? `color-mix(in srgb, ${color} ${Math.round(8 + share * 52)}%, transparent)` : undefined,
@@ -126,6 +130,16 @@ export function ConfusionSection() {
             </tbody>
           </table>
         </div>
+        <p className="touch-only cell-readout" aria-live="polite">
+          {cell && m[cell.i] ? (
+            <>
+              {name(cell.i)} predicted as {name(cell.j)}: <b>{int(m[cell.i][cell.j])}</b> of{" "}
+              {int(m[cell.i].reduce((a, b) => a + b, 0))} ({which === "model" ? "model" : "keyword rules"})
+            </>
+          ) : (
+            <span className="faint">Tap a cell to read it. Swipe the table sideways for more columns.</span>
+          )}
+        </p>
       </Block>
       <Block
         title="Most frequent mistakes (model)"
