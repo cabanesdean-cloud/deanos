@@ -223,6 +223,13 @@ cd web && npm run typecheck && npm run lint && npm run build
    `DEANOS_DATA_URL=https://github.com/<owner>/<repo>/releases/download/data-latest/snapshot.npz`
 4. Running instances re-check the release every 6 hours (`DEANOS_DATA_TTL_HOURS`) with a conditional request, so new data is picked up without a redeploy. Optionally add a Vercel deploy hook as the `VERCEL_DEPLOY_HOOK` repository secret to make the switch immediate.
 5. To serve under `deancabanes.com/deanos`, route that path to this project from the main site (a rewrite), or attach the domain here. Canonical URLs, the sitemap and Open Graph images already point to `https://deancabanes.com/deanos`. The main site's `robots.txt` should list `https://deancabanes.com/deanos/sitemap.xml`.
+6. The domain root `/` is served by a same-app rewrite in `vercel.json` to `/deanos/home` (the personal overview), because Next.js cannot serve pages outside its `basePath`. All `/deanos/...` URLs are unchanged.
+
+### Before a demo
+
+The Python engine can take a few seconds to start after a quiet period. The homepage sends one lightweight request to `/deanos/api/health` to wake it; there is no keep-alive job.
+
+Before an in-person demonstration, open the site and load the example portfolio and Nonlinear Beta Tracker once so the Python engine is awake and the demo results are ready.
 
 ## Security and privacy
 
