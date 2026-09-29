@@ -177,11 +177,11 @@ cd web && npm run typecheck && npm run lint && npm run build
 
 ## Deployment
 
-1. The repository deploys as one Vercel project using Services ([`vercel.json`](vercel.json)); Vercel detects the Next.js and FastAPI services and uses `engine/uv.lock` and `engine/.python-version`.
+1. The repository deploys as one Vercel project using Services ([`vercel.json`](vercel.json)), connected to GitHub: pushes to `main` deploy to production and other branches get preview deployments. Vercel uses `engine/uv.lock` and `engine/.python-version` for the engine.
 2. The **Refresh market data** workflow publishes `snapshot.npz` to the `data-latest` release every weeknight. Run it once by hand after the first push.
 3. Set the engine's data source in Vercel:
    `DEANOS_DATA_URL=https://github.com/<owner>/<repo>/releases/download/data-latest/snapshot.npz`
-4. Optionally add a Vercel deploy hook as the `VERCEL_DEPLOY_HOOK` repository secret so new instances pick up the fresh snapshot right away.
+4. Running instances re-check the release every 6 hours (`DEANOS_DATA_TTL_HOURS`) with a conditional request, so new data is picked up without a redeploy. Optionally add a Vercel deploy hook as the `VERCEL_DEPLOY_HOOK` repository secret to make the switch immediate.
 5. To serve under `deancabanes.com/deanos`, route that path to this project from the main site (a rewrite), or attach the domain here. Canonical URLs, the sitemap and Open Graph images already point to `https://deancabanes.com/deanos`. The main site's `robots.txt` should list `https://deancabanes.com/deanos/sitemap.xml`.
 
 ## Security and privacy

@@ -23,8 +23,8 @@ jobs:
       run:
         working-directory: engine
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
         with:
           python-version: "3.13"
       - run: uv sync --locked --extra data --extra dev
@@ -53,6 +53,8 @@ jobs:
             gh release create data-latest --title "Market data snapshot" \
               --notes "Rebuilt nightly by the Refresh market data workflow." --latest=false
           gh release upload data-latest "$RUNNER_TEMP/snapshot.npz" --clobber
+      # Optional: running instances also re-check the release every 6 hours
+      # (DEANOS_DATA_TTL_HOURS), so this only makes the switch immediate.
       - name: Redeploy so new instances load the new snapshot
         env:
           HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
