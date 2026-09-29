@@ -44,6 +44,10 @@ export const metadata: Metadata = {
       "Explore how a portfolio behaves across changing market conditions using quantitative risk models, simulations and scenario analysis.",
   },
   twitter: { card: "summary_large_image" },
+  // Home Screen on iOS: the name under the icon and a plain status bar. The
+  // icon itself is app/apple-icon.png; the manifest is app/manifest.ts.
+  appleWebApp: { capable: true, title: SITE.name, statusBarStyle: "default" },
+  formatDetection: { telephone: false },
 };
 
 const PERSON_ID = `${SITE_URL}#person`;
@@ -93,6 +97,10 @@ const STRUCTURED_DATA = {
 };
 
 export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // Draw under the notch and home indicator; globals.css pads with env(safe-area-inset-*).
+  viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#fcfcfb" },
     { media: "(prefers-color-scheme: dark)", color: "#1a1a19" },
