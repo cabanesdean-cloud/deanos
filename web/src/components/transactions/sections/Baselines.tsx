@@ -15,10 +15,10 @@ export function BaselinesSection() {
   const gain = m.model.interval.accuracy_gain;
   const leak = m.leakage;
   const rows = [
-    { id: "majority", label: "Most common category", r: m.majority, interval: undefined },
-    { id: "keyword", label: "Keyword rules", r: m.keyword, interval: m.keyword.interval },
-    { id: "model", label: "Model", r: m.model, interval: m.model.interval },
-    { id: "hybrid", label: "Rules first, then model", r: m.hybrid, interval: m.hybrid.interval },
+    { id: "majority", label: "Most common category", short: "Majority guess", r: m.majority, interval: undefined },
+    { id: "keyword", label: "Keyword rules", short: "Keyword rules", r: m.keyword, interval: m.keyword.interval },
+    { id: "model", label: "Model", short: "Model", r: m.model, interval: m.model.interval },
+    { id: "hybrid", label: "Rules first, then model", short: "Rules + model", r: m.hybrid, interval: m.hybrid.interval },
   ];
   const color = (id: string) => (id === "model" ? "var(--series-1)" : id === "hybrid" ? "var(--series-2)" : "var(--reference)");
 
@@ -56,7 +56,8 @@ export function BaselinesSection() {
         <IntervalPlot
           rows={rows.map((r) => ({
             id: r.id,
-            label: r.label,
+            // Short labels: the plot gives labels at most 35% of its width, which clips long ones on phones.
+            label: r.short,
             value: r.r.accuracy,
             low: r.interval?.accuracy[0],
             high: r.interval?.accuracy[1],

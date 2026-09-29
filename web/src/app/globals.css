@@ -1384,6 +1384,8 @@ dl.facts dd {
   font-variant-numeric: tabular-nums;
 }
 .tx-desc-cell {
+  /* Wide enough that descriptors break between words on phones; the table scrolls instead. */
+  min-width: 22ch;
   max-width: 340px;
   white-space: normal !important;
 }
