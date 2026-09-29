@@ -1,7 +1,7 @@
 "use client";
 
 import { LineChart } from "@/components/charts/LineChart";
-import { StackedArea } from "@/components/charts/StackedArea";
+import { StateStrip } from "@/components/charts/StateStrip";
 import { isoToTime } from "@/components/charts/axes";
 import { Legend } from "@/components/ui/Legend";
 import { Stat, StatGrid } from "@/components/ui/Stat";
@@ -25,6 +25,15 @@ function drawdown(growth: number[]): number[] {
     peak = Math.max(peak, g);
     return g / peak - 1;
   });
+}
+
+/** Daily probability of staying in the same regime, as a range over the four regimes. */
+function stayRange(d: Regimes): string {
+  const stay = REGIMES.map((r) => d.transition_matrix?.[r]?.[r]).filter((v): v is number => v != null);
+  if (!stay.length) return "most";
+  const lo = Math.min(...stay);
+  const hi = Math.max(...stay);
+  return Math.round(lo * 100) === Math.round(hi * 100) ? pct(lo, 0) : `${pct(lo, 0)} to ${pct(hi, 0)}`;
 }
 
 const NAME: Record<Regime, string> = { calm: "Calm", normal: "Normal", volatile: "Volatile", crisis: "Crisis" };
@@ -61,8 +70,18 @@ export function RegimesSection({ spec }: SectionProps) {
             }
           >
             <Block
-              title={`Regime probabilities since ${d.sample.start.slice(0, 4)}`}
-              caption="Top: how far the S&P 500 was below its previous high. Bottom: each date uses only S&P 500 data up to that date (a forward filter), so the history shows what the model would have said at the time. Model parameters are estimated once on the full sample. States are named by how volatile they are."
+              title={`Most likely regime since ${d.sample.start.slice(0, 4)}`}
+              caption={
+                <>
+                  Top: how far the S&amp;P 500 was below its previous high. Middle: the regime the model found most likely on each
+                  date. Bottom: how likely that regime was (the highest of the four probabilities, capped at{" "}
+                  {pct(d.history.confidence_cap ?? 0.95, 0)}). Each date uses only data up to that date (a forward filter); the
+                  model&apos;s parameters are estimated once on the full sample. <b>Why so close to 100%?</b> The inputs are smooth
+                  20- and 60-day windows that change little from day to day, and regimes are persistent (the model stays in the same
+                  regime from one day to the next {stayRange(d)} of the time), so once the data fit one regime they keep fitting it. A
+                  reading near 100% means a strong fit under the model&apos;s assumptions, not certainty.
+                </>
+              }
             >
               {d.history.spy_growth && (
                 <LineChart
@@ -77,13 +96,13 @@ export function RegimesSection({ spec }: SectionProps) {
                 />
               )}
               <Legend items={REGIMES.map((r) => ({ label: NAME[r], color: COLOR[r], kind: "swatch" as const }))} />
-              <StackedArea
+              <StateStrip
                 x={d.history.dates.map(isoToTime)}
-                layers={REGIMES.map((r) => ({ id: r, label: NAME[r], values: d.history[r], color: COLOR[r] }))}
+                states={REGIMES.map((r) => ({ id: r, label: NAME[r], values: d.history[r], color: COLOR[r] }))}
                 valueFormat={(v) => pct(v, 0)}
-                ariaLabel="Stacked probabilities of the four market regimes over time."
+                cap={d.history.confidence_cap ?? 0.95}
+                ariaLabel="Most likely market regime over time, colored by regime, with the model's confidence in it as a line underneath."
                 marginLeft={48}
-                height={240}
               />
             </Block>
 

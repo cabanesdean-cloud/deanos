@@ -468,10 +468,15 @@ confidence shown:      min(p_max, 0.95), excess spread across the other states i
     ],
     reading: (
       <p>
-        The stacked chart shows, for each week, how probable each state looked at the time. The current reading
-        never shows more than 95% confidence: the model&apos;s raw probabilities are often near 100%, which
-        overstates how sure anyone can be about an unobservable state. Expected durations come from the transition
-        probabilities.
+        The history chart colors each week by the state the model found most likely at the time, with a thin line
+        underneath for how likely that state was (the highest of the four probabilities); hovering or tapping a
+        date lists all four. Filtered probabilities are typically near 0 or 100%: the features are smooth 20- and
+        60-day windows that change little from day to day, and the fitted states are persistent (a 96 to 98%
+        chance of staying in the same state the next day), so once the data fit one state, it keeps fitting. A
+        reading near 100% means a strong fit under the model&apos;s assumptions, not certainty. Neither the current
+        reading nor the history shows more than 95%, with the excess spread over the other states, because the
+        raw figure overstates how sure anyone can be about an unobservable state. Expected durations come from the
+        transition probabilities.
       </p>
     ),
     limitations: [

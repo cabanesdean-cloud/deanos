@@ -183,7 +183,7 @@ export interface Regimes extends Base {
   >;
   transition_matrix: Record<Regime, Record<Regime, number>>;
   expected_duration_days: Record<Regime, Nullable<number>>;
-  history: { dates: string[]; step_days: number; spy_growth?: number[] } & Record<Regime, number[]>;
+  history: { dates: string[]; step_days: number; spy_growth?: number[]; confidence_cap?: number } & Record<Regime, number[]>;
   stability: {
     starts: {
       seed: number;
