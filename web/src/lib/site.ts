@@ -153,7 +153,7 @@ export const SITE_URL = `${SITE.origin}${SITE.basePath}`;
 
 /** DeanOS share image (pages that set their own openGraph repeat it). */
 export const OG_IMAGE = {
-  url: "/deanos/opengraph-image",
+  url: "/deanos/og-image",
   width: 1200,
   height: 630,
   alt: "DeanOS: Portfolio Risk & Modeling Engine",

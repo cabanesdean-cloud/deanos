@@ -18,7 +18,6 @@ export const metadata: Metadata = {
     description: DESCRIPTION,
     url: "/beta",
     siteName: "Dean Cabanes",
-    images: [{ url: "/beta/opengraph-image", width: 1200, height: 630, alt: "Nonlinear Beta Tracker" }],
   },
 };
 
