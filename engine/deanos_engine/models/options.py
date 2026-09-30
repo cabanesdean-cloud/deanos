@@ -372,6 +372,305 @@ def mc_asian(
     }
 
 
+# ─── Barrier options (discretely monitored, Monte Carlo) ──────────────────────
+
+BarrierType = Literal["up-and-out", "up-and-in", "down-and-out", "down-and-in"]
+BARRIER_TYPES: tuple[BarrierType, ...] = ("up-and-out", "up-and-in", "down-and-out", "down-and-in")
+# Broadie, Glasserman and Kou (1997): a barrier checked on m equally spaced dates
+# prices close to a continuously monitored one shifted away from the spot by
+# exp(beta * sigma * sqrt(T / m)), beta = -zeta(1/2) / sqrt(2 pi).
+BGK_BETA = 0.5826
+
+
+def _check_barrier(s: float, barrier: float, barrier_type: str) -> None:
+    if barrier_type not in BARRIER_TYPES:
+        raise OptionsError(f"barrier type must be one of {', '.join(BARRIER_TYPES)}.")
+    if not (math.isfinite(barrier) and barrier > 0):
+        raise OptionsError("The barrier must be a positive number.")
+
+
+def barrier_breached(s: float, barrier: float, barrier_type: BarrierType) -> bool:
+    """Whether the spot is already at or beyond the barrier at the start."""
+    return s >= barrier if barrier_type.startswith("up") else s <= barrier
+
+
+def barrier_price_continuous(
+    s: float,
+    k: float,
+    t: float,
+    r: float,
+    q: float,
+    sigma: float,
+    kind: OptionKind,
+    barrier: float,
+    barrier_type: BarrierType,
+) -> float:
+    """Closed-form price of a continuously monitored barrier option (no rebate).
+
+    Merton (1973) and Reiner and Rubinstein (1991), in the notation of Hull,
+    Options, Futures, and Other Derivatives. Knock-in + knock-out equals the
+    European price exactly, so each out price is the European minus the in price
+    (or the other way round). If the spot is already at or beyond the barrier the
+    knock-out is worth 0 and the knock-in is the European option.
+    """
+    _check(s, k, t, sigma, kind)
+    _check_barrier(s, barrier, barrier_type)
+    vanilla = bs_price(s, k, t, r, q, sigma, kind)
+    knock_in = barrier_type.endswith("in")
+    if barrier_breached(s, barrier, barrier_type):
+        return vanilla if knock_in else 0.0
+    if t <= 0 or sigma * math.sqrt(t) < _DEGENERATE:
+        # Deterministic path s e^{(r-q)u}: monotone, so it crosses only if the
+        # endpoint is beyond the barrier.
+        end = s * math.exp((r - q) * t)
+        crossed = end >= barrier if barrier_type.startswith("up") else end <= barrier
+        hit = vanilla if crossed else 0.0
+        return hit if knock_in else vanilla - hit
+
+    h = barrier
+    sq = sigma * math.sqrt(t)
+    lam = (r - q + 0.5 * sigma * sigma) / (sigma * sigma)
+    y = math.log(h * h / (s * k)) / sq + lam * sq
+    x1 = math.log(s / h) / sq + lam * sq
+    y1 = math.log(h / s) / sq + lam * sq
+    se, kd = s * math.exp(-q * t), k * math.exp(-r * t)
+    # (H/S)^(2 lambda) in log space: finite for any barrier the API accepts.
+    a = math.exp(min(_LOG_CAP, 2 * lam * math.log(h / s)))
+    b = math.exp(min(_LOG_CAP, (2 * lam - 2) * math.log(h / s)))
+    n = _cdf
+
+    if kind == "call":
+        if barrier_type.startswith("down"):
+            if h <= k:
+                di = se * a * n(y) - kd * b * n(y - sq)
+            else:
+                do = se * n(x1) - kd * n(x1 - sq) - se * a * n(y1) + kd * b * n(y1 - sq)
+                di = vanilla - do
+            value_in = di
+        else:
+            if h <= k:
+                value_in = vanilla
+            else:
+                value_in = (
+                    se * n(x1)
+                    - kd * n(x1 - sq)
+                    - se * a * (n(-y) - n(-y1))
+                    + kd * b * (n(-y + sq) - n(-y1 + sq))
+                )
+    else:
+        if barrier_type.startswith("up"):
+            if h >= k:
+                value_in = -se * a * n(-y) + kd * b * n(-y + sq)
+            else:
+                uo = -se * n(-x1) + kd * n(-x1 + sq) + se * a * n(-y1) - kd * b * n(-y1 + sq)
+                value_in = vanilla - uo
+        else:
+            if h >= k:
+                value_in = vanilla
+            else:
+                value_in = (
+                    -se * n(-x1)
+                    + kd * n(-x1 + sq)
+                    + se * a * (n(y) - n(y1))
+                    - kd * b * (n(y - sq) - n(y1 - sq))
+                )
+    value_in = min(max(value_in, 0.0), vanilla)
+    return value_in if knock_in else max(vanilla - value_in, 0.0)
+
+
+def barrier_price_bgk(
+    s: float,
+    k: float,
+    t: float,
+    r: float,
+    q: float,
+    sigma: float,
+    kind: OptionKind,
+    barrier: float,
+    barrier_type: BarrierType,
+    n_obs: int,
+) -> float:
+    """Approximate price of the barrier checked on n_obs equal dates (BGK correction).
+
+    The continuous formula with the barrier moved away from the spot by
+    exp(0.5826 sigma sqrt(T / n_obs)). An approximation, accurate when the
+    barrier is not very close to the spot; the Monte Carlo price is the
+    reference for the discrete contract.
+    """
+    _check(s, k, t, sigma, kind)
+    _check_barrier(s, barrier, barrier_type)
+    if n_obs < 1:
+        raise OptionsError("At least one monitoring date is needed.")
+    if barrier_breached(s, barrier, barrier_type):
+        return bs_price(s, k, t, r, q, sigma, kind) if barrier_type.endswith("in") else 0.0
+    shift = math.exp(BGK_BETA * sigma * math.sqrt(t / n_obs))
+    h = barrier * shift if barrier_type.startswith("up") else barrier / shift
+    return barrier_price_continuous(s, k, t, r, q, sigma, kind, h, barrier_type)
+
+
+def _barrier_paths(
+    s: float,
+    k: float,
+    t: float,
+    r: float,
+    q: float,
+    sigma: float,
+    kind: OptionKind,
+    barrier: float,
+    barrier_type: BarrierType,
+    z: np.ndarray,
+    bridge: bool = False,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Discounted barrier payoff, discounted vanilla payoff and survival for each row of z.
+
+    Survival is 1 if the barrier was never touched (0 or 1 on the monitoring
+    dates; a probability with the bridge).
+
+    Log-prices are exact under GBM on the monitoring dates. With bridge=True the
+    probability that the path crossed between two dates (Brownian bridge) is
+    used instead of the dates alone, giving an estimator of the continuously
+    monitored price.
+    """
+    n_obs = z.shape[1]
+    dt = t / n_obs
+    step_drift = (r - q - 0.5 * sigma * sigma) * dt
+    step_vol = sigma * math.sqrt(dt)
+    logp = math.log(s) + np.cumsum(step_drift + step_vol * z, axis=1)
+    df = math.exp(-r * t)
+    vanilla = df * _payoff(np.exp(logp[:, -1]), k, kind)
+    lh = math.log(barrier)
+    up = barrier_type.startswith("up")
+    if bridge:
+        prev = np.concatenate([np.full((z.shape[0], 1), math.log(s)), logp[:, :-1]], axis=1)
+        a, b = lh - prev, lh - logp
+        beyond = (a <= 0) | (b <= 0) if up else (a >= 0) | (b >= 0)
+        var = sigma * sigma * dt
+        cross = np.where(
+            beyond, 1.0, np.exp(-2.0 * np.maximum(a * b, 0.0) / var) if var > 0 else 0.0
+        )
+        survive = np.prod(1.0 - cross, axis=1)
+    else:
+        hit = (logp >= lh).any(axis=1) if up else (logp <= lh).any(axis=1)
+        survive = (~hit).astype(float)
+    if barrier_breached(s, barrier, barrier_type):
+        survive = np.zeros_like(vanilla)  # the barrier is already hit at t = 0
+    alive = vanilla * survive
+    value = vanilla - alive if barrier_type.endswith("in") else alive
+    return value, vanilla, survive
+
+
+def mc_barrier(
+    s: float,
+    k: float,
+    t: float,
+    r: float,
+    q: float,
+    sigma: float,
+    kind: OptionKind,
+    barrier: float,
+    barrier_type: BarrierType,
+    n_obs: int = 52,
+    n_paths: int = 20_000,
+    seed: int = 42,
+) -> dict[str, Any]:
+    """Barrier option checked on n_obs equally spaced dates, by Monte Carlo.
+
+    The contract is discretely monitored: the barrier only counts on the n_obs
+    dates (t_i = i T / n_obs). Paths that cross between two dates and come back
+    are not knocked out, so a discrete knock-out is worth more than the
+    continuous closed form and a discrete knock-in less; the gap shrinks
+    roughly like 1 / sqrt(n_obs). The result carries three references: the
+    European price, the continuous closed form and its BGK-corrected version
+    (an approximation to the discrete price).
+
+    Antithetic pairs; the standard error and 95% interval are over pairs.
+    """
+    _check(s, k, t, sigma, kind)
+    _check_barrier(s, barrier, barrier_type)
+    if n_obs < 1 or n_paths < 2:
+        raise OptionsError("At least one monitoring date and two paths are needed.")
+    n_pairs = n_paths // 2
+    n_paths = 2 * n_pairs
+    breached = barrier_breached(s, barrier, barrier_type)
+    rng = np.random.default_rng(seed)
+    y = np.empty(n_pairs)
+    y_single = np.empty(n_pairs)
+    hits = 0.0
+    chunk = max(1, 200_000 // n_obs)
+    for lo in range(0, n_pairs, chunk):
+        hi = min(n_pairs, lo + chunk)
+        z = rng.standard_normal((hi - lo, n_obs))
+        v_up, _, alive_up = _barrier_paths(s, k, t, r, q, sigma, kind, barrier, barrier_type, z)
+        v_dn, _, alive_dn = _barrier_paths(s, k, t, r, q, sigma, kind, barrier, barrier_type, -z)
+        y[lo:hi] = 0.5 * (v_up + v_dn)
+        y_single[lo:hi] = v_up
+        # Paths that touched the barrier on a monitoring date (both halves of each pair).
+        hits += float(2 * (hi - lo) - alive_up.sum() - alive_dn.sum())
+
+    cp_pairs = _checkpoints(n_pairs, start=50)
+    cm, cs = _running(y, cp_pairs)
+    _, single_se = _running(y_single, np.array([n_pairs]))
+    plain_se = float(single_se[-1]) / math.sqrt(2)
+    price, se = float(cm[-1]), float(cs[-1])
+    return {
+        "estimate": _summary(price, se, n_paths),
+        "plain_std_error": plain_se,
+        "variance_reduction": (plain_se / se) ** 2 if se > 0 else None,
+        "barrier": barrier,
+        "barrier_type": barrier_type,
+        "monitoring_dates": n_obs,
+        "breached_at_start": breached,
+        "hit_share": hits / n_paths,
+        "continuous_closed_form": barrier_price_continuous(
+            s, k, t, r, q, sigma, kind, barrier, barrier_type
+        ),
+        "discrete_bgk": barrier_price_bgk(s, k, t, r, q, sigma, kind, barrier, barrier_type, n_obs),
+        "european_black_scholes": bs_price(s, k, t, r, q, sigma, kind),
+        "convergence": {"paths": 2 * cp_pairs, "controlled": cm, "controlled_se": cs},
+        "seed": seed,
+    }
+
+
+def mc_barrier_continuous(
+    s: float,
+    k: float,
+    t: float,
+    r: float,
+    q: float,
+    sigma: float,
+    kind: OptionKind,
+    barrier: float,
+    barrier_type: BarrierType,
+    n_steps: int = 50,
+    n_paths: int = 20_000,
+    seed: int = 42,
+) -> dict[str, Any]:
+    """Continuously monitored barrier price by Monte Carlo with a Brownian-bridge correction.
+
+    An independent check of the closed form: unbiased for the continuous
+    contract at any step count, because the crossing probability between two
+    simulated dates is exact under GBM.
+    """
+    _check(s, k, t, sigma, kind)
+    _check_barrier(s, barrier, barrier_type)
+    rng = np.random.default_rng(seed)
+    n_pairs = max(1, n_paths // 2)
+    y = np.empty(n_pairs)
+    chunk = max(1, 200_000 // n_steps)
+    for lo in range(0, n_pairs, chunk):
+        hi = min(n_pairs, lo + chunk)
+        z = rng.standard_normal((hi - lo, n_steps))
+        v_up, _, _ = _barrier_paths(
+            s, k, t, r, q, sigma, kind, barrier, barrier_type, z, bridge=True
+        )
+        v_dn, _, _ = _barrier_paths(
+            s, k, t, r, q, sigma, kind, barrier, barrier_type, -z, bridge=True
+        )
+        y[lo:hi] = 0.5 * (v_up + v_dn)
+    m, e = _running(y, np.array([n_pairs]))
+    return _summary(float(m[-1]), float(e[-1]), 2 * n_pairs)
+
+
 # ─── Binomial tree (Cox-Ross-Rubinstein) ──────────────────────────────────────
 
 
@@ -792,4 +1091,114 @@ def validation_report(seed: int = 42) -> dict[str, Any]:
         },
         "binomial": {"inputs": {**inputs, "kind": "put"}, "black_scholes": exact_put, "rows": tree},
         "implied_vol": {"cases": count, "skipped_at_bounds": skipped, "max_abs_error": worst},
+        "barrier": barrier_validation(seed=seed),
     }
+
+
+# ─── Monte Carlo vs Black-Scholes on a real ticker ────────────────────────────
+
+EXAMPLE_TICKER = "NVDA"
+EXAMPLE_PATHS = 100_000
+EXAMPLE_TERM = 0.25  # years: a three-month at-the-money call
+EXAMPLE_RATE = 0.04
+
+
+def mc_vs_black_scholes(
+    s: float,
+    k: float,
+    t: float,
+    r: float,
+    q: float,
+    sigma: float,
+    kind: OptionKind = "call",
+    n_paths: int = EXAMPLE_PATHS,
+    seed: int = 42,
+) -> dict[str, Any]:
+    """One Monte Carlo run against the exact Black-Scholes price, for each estimator.
+
+    The difference of a single run is noise of the size of its standard error,
+    so each row also reports the difference in standard errors (z) and whether
+    the 95% interval contains the exact price.
+    """
+    res = mc_european(s, k, t, r, q, sigma, kind, n_paths=n_paths, seed=seed)
+    bs = float(res["black_scholes"])
+    rows = []
+    for key in ("plain", "antithetic", "antithetic_control"):
+        e = res[key]
+        diff = float(e["price"]) - bs
+        se = float(e["std_error"])
+        rows.append(
+            {
+                "estimator": key,
+                "price": float(e["price"]),
+                "std_error": se,
+                "ci95": [float(v) for v in e["ci95"]],
+                "difference": diff,
+                "difference_pct": 100 * diff / bs if bs > 0 else None,
+                "z": diff / se if se > 0 else None,
+                "within_ci": bool(e["ci95"][0] <= bs <= e["ci95"][1]),
+            }
+        )
+    return {
+        "inputs": {"s": s, "k": k, "t": t, "r": r, "q": q, "sigma": sigma, "kind": kind},
+        "paths": int(res["estimate"]["paths"]),
+        "seed": seed,
+        "black_scholes": bs,
+        "rows": rows,
+    }
+
+
+# Barrier checks published on the methodology page: closed form vs an
+# independent Brownian-bridge simulation, and discrete monitoring vs BGK.
+BARRIER_CASES: tuple[tuple[OptionKind, BarrierType, float], ...] = (
+    ("call", "up-and-out", 120.0),
+    ("call", "down-and-in", 90.0),
+    ("put", "down-and-out", 80.0),
+    ("put", "up-and-in", 110.0),
+)
+
+
+def barrier_validation(seed: int = 42, paths: int = 200_000) -> dict[str, Any]:
+    s, k, t, r, q, sigma = VALIDATION_BASE
+    rows = []
+    for kind, btype, h in BARRIER_CASES:
+        closed = barrier_price_continuous(s, k, t, r, q, sigma, kind, h, btype)
+        bridge = mc_barrier_continuous(
+            s, k, t, r, q, sigma, kind, h, btype, n_steps=50, n_paths=paths, seed=seed
+        )
+        discrete = {}
+        for n_obs in (12, 52, 252):
+            mc = mc_barrier(
+                s,
+                k,
+                t,
+                r,
+                q,
+                sigma,
+                kind,
+                h,
+                btype,
+                n_obs=n_obs,
+                n_paths=min(paths, 1_000_000 // n_obs * 20),
+                seed=seed,
+            )
+            discrete[str(n_obs)] = {
+                "monte_carlo": mc["estimate"]["price"],
+                "std_error": mc["estimate"]["std_error"],
+                "bgk": mc["discrete_bgk"],
+            }
+        rows.append(
+            {
+                "kind": kind,
+                "barrier_type": btype,
+                "barrier": h,
+                "closed_form": closed,
+                "bridge": bridge["price"],
+                "bridge_std_error": bridge["std_error"],
+                "bridge_within_ci": bool(bridge["ci95"][0] <= closed <= bridge["ci95"][1]),
+                "discrete": discrete,
+                "european": bs_price(s, k, t, r, q, sigma, kind),
+            }
+        )
+    inputs = dict(zip(("s", "k", "t", "r", "q", "sigma"), VALIDATION_BASE, strict=True))
+    return {"inputs": inputs, "paths": paths, "bridge_steps": 50, "rows": rows}

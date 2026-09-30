@@ -591,6 +591,44 @@ def option_asian(
     return _respond_options(response, body)
 
 
+BarrierKind = Annotated[
+    Literal["up-and-out", "up-and-in", "down-and-out", "down-and-in"],
+    Query(description="Barrier type."),
+]
+
+
+@router.get("/options/barrier")
+def option_barrier(
+    response: Response,
+    h: Annotated[float, Query(gt=0, le=1_000_000, description="Barrier level.")],
+    s: Spot = 100.0,
+    k: Strike = 100.0,
+    t: Expiry = 1.0,
+    r: Rate = 0.04,
+    q: Yield = 0.0,
+    sigma: Vol = 0.2,
+    kind: Kind = "call",
+    btype: BarrierKind = "up-and-out",
+    obs: Annotated[int, Query(ge=1, le=1260, description="Monitoring dates.")] = 52,
+    paths: Annotated[int, Query(ge=1000, le=100_000)] = 20_000,
+    seed: Seed = 42,
+) -> dict[str, Any]:
+    """Discretely monitored barrier option by Monte Carlo, with closed-form references."""
+    if paths * obs > MAX_OPTION_CELLS:
+        raise options.OptionsError(
+            f"paths x monitoring dates must be at most {MAX_OPTION_CELLS:,}; reduce one of them."
+        )
+    body = _timed(
+        lambda: {
+            "inputs": {**_inputs(s, k, t, r, q, sigma, kind), "h": h, "btype": btype, "obs": obs},
+            **options.mc_barrier(
+                s, k, t, r, q, sigma, kind, h, btype, n_obs=obs, n_paths=paths, seed=seed
+            ),
+        }
+    )
+    return _respond_options(response, body)
+
+
 @router.get("/options/implied-vol")
 def option_implied_vol(
     response: Response,
@@ -656,7 +694,34 @@ _VALIDATION: dict[str, Any] = {}
 def _validation_cached() -> dict[str, Any]:
     if not _VALIDATION:
         _VALIDATION.update(options.validation_report())
-    return dict(_VALIDATION)
+    return {**_VALIDATION, "ticker_example": _ticker_example()}
+
+
+def _ticker_example() -> dict[str, Any] | None:
+    """Monte Carlo vs Black-Scholes for a three-month at-the-money NVDA call.
+
+    Spot and volatility (one-year realized) come from the latest snapshot, so
+    the numbers move with the data. None when the snapshot is unavailable.
+    """
+    try:
+        snap = get_snapshot()
+        series = snap.prices[options.EXAMPLE_TICKER].dropna()
+    except Exception:  # noqa: BLE001 - the example is optional; validation must still load
+        return None
+    closes = series.to_numpy(dtype=float)
+    if len(closes) <= 252:
+        return None
+    spot = float(closes[-1])
+    sigma = options.realized_vol(closes, 252)
+    body = options.mc_vs_black_scholes(
+        spot, float(round(spot)), options.EXAMPLE_TERM, options.EXAMPLE_RATE, 0.0, sigma, "call"
+    )
+    return {
+        "ticker": options.EXAMPLE_TICKER,
+        "as_of": str(series.index[-1].date()),
+        "vol_window": "1 year realized",
+        **body,
+    }
 
 
 # ─── Transaction ML ─────────────────────────────────────────────────────────────

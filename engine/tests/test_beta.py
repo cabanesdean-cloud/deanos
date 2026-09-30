@@ -17,7 +17,8 @@ BASE = "/deanos/api"
 
 def _market(n: int, seed: int = 0, sd: float = 0.01) -> np.ndarray:
     rng = np.random.default_rng(seed)
-    return rng.standard_t(5, n) * sd / np.sqrt(5 / 3)
+    out: np.ndarray = rng.standard_t(5, n) * sd / np.sqrt(5 / 3)
+    return out
 
 
 def _dates(n: int) -> pd.DatetimeIndex:
