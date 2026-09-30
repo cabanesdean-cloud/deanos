@@ -98,10 +98,10 @@ export const WORK = {
       title: "Assistant Director of Marketing",
       dates: "September 2025 \u2013 Present",
       current: true,
-      figures: ["250,000+ views", "1,000+ shares", "~200% engagement growth"],
+      figures: ["1.34M total views", "250K+ views on one post", "1,000+ shares", "~200% engagement growth"],
       bullets: [
         "Manage Instagram and Facebook content end to end, including photography, video, product launches and event promotion; continue supporting the business remotely while attending college.",
-        "Generated 250,000+ views and 1,000+ shares, with approximately 200% engagement growth; promoted Nike SB releases that consistently sold out.",
+        "Generated 1.34M total views, including 250K+ on one post, and 1,000+ shares; grew engagement approximately 200% and promoted Nike SB releases that consistently sold out.",
       ],
     },
     {
@@ -136,8 +136,6 @@ export const EDUCATION = {
     where: "Santa Barbara, CA",
     dates: "2026 \u2013 Present",
     program: "Economics",
-    gpa: "4.0",
-    coursework: ["Calculus", "Microeconomics", "Statistics", "Public Speaking"],
   },
   school: { name: "Mira Costa High School", where: "Manhattan Beach, CA", dates: "Graduated 2026" },
 };

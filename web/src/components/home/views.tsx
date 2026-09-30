@@ -46,7 +46,7 @@ export function OverviewView({ navigate }: { navigate: Navigate }) {
             {WORK.org} · {role.dates}
           </span>
           <span className="ncard__fig">
-            <b>250,000+</b> <span>views generated</span>
+            <b>1.34M</b> <span>total views</span>
           </span>
           <span className="ncard__cta">
             Experience <Icon.Chevron size={14} />
@@ -57,9 +57,6 @@ export function OverviewView({ navigate }: { navigate: Navigate }) {
           <span className="ncard__title">{college.name}</span>
           <span className="ncard__meta">
             {college.program} · {college.dates}
-          </span>
-          <span className="ncard__fig">
-            <b>{college.gpa}</b> <span>current GPA</span>
           </span>
           <span className="ncard__cta">
             Education <Icon.Chevron size={14} />
@@ -218,25 +215,11 @@ export function EducationView() {
                 {c.where} · {c.dates}
               </p>
             </div>
-            <p className="edu-gpa">
-              <b>{c.gpa}</b>
-              <span>Current GPA</span>
-            </p>
           </div>
           <dl className="edu-facts">
             <div>
               <dt>Program</dt>
               <dd>{c.program}</dd>
-            </div>
-            <div>
-              <dt>Coursework</dt>
-              <dd>
-                <ul className="hchips">
-                  {c.coursework.map((x) => (
-                    <li key={x}>{x}</li>
-                  ))}
-                </ul>
-              </dd>
             </div>
           </dl>
         </article>
