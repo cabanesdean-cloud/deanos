@@ -56,7 +56,7 @@ Portfolios live only in the page address (`/deanos/explore?p=VTI:60,AGG:40`). No
 
 ## Options Pricing
 
-A second project on the same engine and design system, at [`/deanos/options`](https://deancabanes.com/deanos/options): a Monte Carlo options pricing engine built from scratch. Set spot, strike, expiry, rates, dividend yield and volatility (or seed spot and volatility from any ticker in the nightly snapshot), and the page prices the option several ways and shows where they agree.
+A second project on the same engine and design system, at [`/options`](https://deancabanes.com/options): a Monte Carlo options pricing engine built from scratch. Set spot, strike, expiry, rates, dividend yield and volatility (or seed spot and volatility from any ticker in the nightly snapshot), and the page prices the option several ways and shows where they agree.
 
 | Section | What it shows | Method |
 |---|---|---|
@@ -66,12 +66,13 @@ A second project on the same engine and design system, at [`/deanos/options`](ht
 | Early exercise | What the American right is worth and where exercising now is optimal | Binomial tree, American vs European on the same tree |
 | Implied volatility | The volatility behind an observed price | Newton-Raphson safeguarded by bisection, no-arbitrage bounds |
 | Asian option | Why simulation matters when there is no formula | Arithmetic-average Monte Carlo with a geometric-average control variate |
+| Barrier option | Knock-in and knock-out, checked on discrete dates | Monte Carlo with antithetic draws, against the continuous closed form and its BGK correction |
 
 API: `GET /deanos/api/options/{price,montecarlo,asian,implied-vol,historical-vol,validation}` with every input in the query string (paths, steps and averaging dates are capped). Checks: Hull's textbook examples (prices, Greeks, the five-step American put, implied volatility), put-call parity, Greeks against finite differences, Monte Carlo 95% intervals covering the exact price about 95% of the time over 1,000 runs, binomial convergence to Black-Scholes, American put ≥ European put, American call without dividends = European, and implied-volatility round trips. Four methodology pages cover the assumptions and limits.
 
 ## Transaction ML
 
-A third project, at [`/deanos/transactions`](https://deancabanes.com/deanos/transactions): an explainable classifier that sorts bank-statement descriptors such as `SQ *BLUE BOTTLE COFFEE` or `UBER *TRIP` into 14 spending categories. Type a descriptor (and optionally an amount) and the page shows the category, a calibrated confidence, the runners-up, and how much each word and the amount pushed the decision.
+A third project, at [`/transactions`](https://deancabanes.com/transactions): an explainable classifier that sorts bank-statement descriptors such as `SQ *BLUE BOTTLE COFFEE` or `UBER *TRIP` into 14 spending categories. Type a descriptor (and optionally an amount) and the page shows the category, a calibrated confidence, the runners-up, and how much each word and the amount pushed the decision.
 
 Every transaction is synthetic. A seeded generator (`engine/deanos_engine/models/transactions_synth.py`) invents 24,000 descriptors from about 210 public brand names and procedurally generated local businesses, with processor prefixes, store numbers, cities, truncation, casing noise, per-category amounts and a few genuinely ambiguous chains. No real account data is used anywhere.
 
@@ -115,7 +116,7 @@ flowchart LR
 
 ```
 deanos/
-├── web/                     Next.js app (basePath /deanos)
+├── web/                     Next.js app (no basePath: résumé at /, tools at /beta, /deanos, /options, /transactions)
 │   └── src/
 │       ├── app/             pages, metadata, OG images, sitemap
 │       ├── components/      charts (SVG + d3 scales), explorer sections, UI
@@ -222,8 +223,8 @@ cd web && npm run typecheck && npm run lint && npm run build
 3. Set the engine's data source in Vercel:
    `DEANOS_DATA_URL=https://github.com/<owner>/<repo>/releases/download/data-latest/snapshot.npz`
 4. Running instances re-check the release every 6 hours (`DEANOS_DATA_TTL_HOURS`) with a conditional request, so new data is picked up without a redeploy. Optionally add a Vercel deploy hook as the `VERCEL_DEPLOY_HOOK` repository secret to make the switch immediate.
-5. To serve under `deancabanes.com/deanos`, route that path to this project from the main site (a rewrite), or attach the domain here. Canonical URLs, the sitemap and Open Graph images already point to `https://deancabanes.com/deanos`. The main site's `robots.txt` should list `https://deancabanes.com/deanos/sitemap.xml`.
-6. The domain root `/` is served by a same-app rewrite in `vercel.json` to `/deanos/home` (the personal overview), because Next.js cannot serve pages outside its `basePath`. All `/deanos/...` URLs are unchanged.
+5. deancabanes.com is attached to this project. Canonical URLs, /sitemap.xml and /robots.txt are served from the domain root.
+6. The domain root / is Dean's résumé. Each tool has a short address (/beta, /deanos, /options, /transactions); the old /deanos/beta, /deanos/options and /deanos/transactions URLs redirect permanently (308, query string kept) via next.config.ts. vercel.json only routes /deanos/api/* to the Python service; everything else goes to Next.js.
 
 ### Before a demo
 

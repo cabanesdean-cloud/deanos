@@ -2653,3 +2653,15 @@ a.chip {
   }
 }
 
+
+@media (max-width: 600px) {
+  .resume-head__contact {
+    gap: var(--s-1) var(--s-4);
+  }
+  .resume-head__contact li + li::before {
+    content: none;
+  }
+  .resume-head__contact li:first-child {
+    flex: 1 0 100%;
+  }
+}
