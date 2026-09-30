@@ -13,3 +13,4 @@ CLAUDE.md
 .claude
 scripts/hooks
 docs
+.tmp-shots
