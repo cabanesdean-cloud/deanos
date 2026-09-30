@@ -2841,8 +2841,7 @@ html:has(.home-sheet[open]) {
   align-items: baseline;
   gap: var(--s-2);
 }
-.ncard__fig b,
-.edu-gpa b {
+.ncard__fig b {
   font-family: var(--font-mono);
   font-weight: 500;
   font-size: 1.75rem;
@@ -3205,20 +3204,6 @@ html:has(.home-sheet[open]) {
   color: var(--fg-2);
   font-variant-numeric: tabular-nums;
 }
-.edu-gpa {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-  flex-shrink: 0;
-}
-.edu-gpa b {
-  font-size: 2.25rem;
-}
-.edu-gpa span {
-  font-size: var(--t-13);
-  color: var(--fg-2);
-}
 .edu-facts {
   margin: var(--s-6) 0 0;
   display: grid;
@@ -3351,9 +3336,6 @@ html:has(.home-sheet[open]) {
   .edu-facts > div {
     grid-template-columns: 1fr;
     gap: var(--s-2);
-  }
-  .edu-gpa b {
-    font-size: 1.75rem;
   }
   .skills-table tbody th[scope="row"] {
     width: 36%;
@@ -3805,9 +3787,6 @@ html:has(.home-sheet[open]) {
   }
   .edu-card__head {
     display: block;
-  }
-  .edu-gpa {
-    display: none;
   }
   .edu-facts {
     margin-top: 2pt;
