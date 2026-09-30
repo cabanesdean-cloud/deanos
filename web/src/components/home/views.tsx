@@ -145,7 +145,8 @@ function RoleItem({ role, open, onToggle }: { role: Role; open: boolean; onToggl
 }
 
 export function ExperienceView() {
-  const [open, setOpen] = useState<Record<string, boolean>>({});
+  // The current role starts open, so the pattern (summary, then details) is visible.
+  const [open, setOpen] = useState<Record<string, boolean>>({ [WORK.roles[0].id]: true });
   const all = WORK.roles.every((r) => open[r.id]);
   return (
     <section className="view view--experience" id="view-experience" aria-labelledby="view-experience-title">

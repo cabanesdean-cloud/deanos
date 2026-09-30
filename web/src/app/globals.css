@@ -2836,6 +2836,8 @@ html:has(.home-sheet[open]) {
   margin-top: auto;
   padding-top: var(--s-4);
   display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--s-2);
   align-items: baseline;
   gap: var(--s-2);
 }
@@ -2920,8 +2922,20 @@ html:has(.home-sheet[open]) {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+/* Press feedback goes on the card: a transform on the link would shrink its
+   stretched click area mid-press and the click would miss. */
+.pcard {
+  transition:
+    border-color 120ms var(--ease-out),
+    background-color 120ms var(--ease-out),
+    transform 160ms var(--ease-out);
+}
+.home .pcard__open:active {
+  transform: none;
+}
 .pcard:has(.pcard__open:active) {
   background: var(--bg-2);
+  transform: scale(0.99);
 }
 .pcard__top {
   display: flex;
@@ -3235,6 +3249,7 @@ html:has(.home-sheet[open]) {
   font-size: var(--t-14);
   color: var(--fg);
   padding: 3px 10px;
+  border-radius: 14px;
 }
 
 /* Skills */
@@ -3278,7 +3293,7 @@ html:has(.home-sheet[open]) {
   font-weight: 600;
   font-size: var(--t-16);
   padding: var(--s-2) var(--s-4) var(--s-2) 0;
-  width: 42%;
+  width: 30%;
   vertical-align: middle;
 }
 .skills-table td {
@@ -3330,6 +3345,9 @@ html:has(.home-sheet[open]) {
   .view__head {
     margin-bottom: var(--s-5);
   }
+  .view__tool {
+    margin-left: calc(-1 * var(--s-3));
+  }
   .edu-facts > div {
     grid-template-columns: 1fr;
     gap: var(--s-2);
@@ -3338,7 +3356,7 @@ html:has(.home-sheet[open]) {
     font-size: 1.75rem;
   }
   .skills-table tbody th[scope="row"] {
-    width: 38%;
+    width: 36%;
     font-size: var(--t-14);
   }
   .pcard--full {
@@ -3456,7 +3474,7 @@ html:has(.home-sheet[open]) {
     height: 100dvh;
     overflow-y: auto;
     align-items: stretch;
-    padding: var(--s-12) var(--s-8) var(--s-6) 0;
+    padding: var(--s-10) var(--s-8) var(--s-4) 0;
     border-right: var(--hairline);
     scrollbar-width: thin;
   }
@@ -3471,12 +3489,12 @@ html:has(.home-sheet[open]) {
     font-size: var(--t-16);
   }
   .home-contact--rail {
-    margin-top: var(--s-6);
+    margin-top: var(--s-4);
   }
   .home-railnav {
     display: block;
-    margin-top: var(--s-8);
-    padding-top: var(--s-4);
+    margin-top: var(--s-5);
+    padding-top: var(--s-3);
     border-top: var(--hairline);
   }
   .home-railnav__list {
@@ -3524,18 +3542,18 @@ html:has(.home-sheet[open]) {
   }
   .home-rail__foot {
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 0;
     margin: auto calc(-1 * var(--s-3)) 0;
-    padding-top: var(--s-6);
+    padding-top: var(--s-3);
   }
   .home-rail__foot .button {
     color: var(--fg-2);
     font-weight: 400;
   }
   .home-main {
-    padding: var(--s-12) 0 var(--s-16);
+    padding: var(--s-10) 0 var(--s-16);
   }
   .home-foot {
     display: none;
@@ -3720,8 +3738,9 @@ html:has(.home-sheet[open]) {
     margin-top: 1pt;
   }
   .pcard__stack {
-    display: block !important;
+    display: inline !important;
     margin: 0;
+    padding: 0;
     font-size: 9pt;
   }
   .pcard__stack li {
@@ -3735,8 +3754,24 @@ html:has(.home-sheet[open]) {
     content: ", ";
   }
   .pcard__path {
+    display: inline !important;
     font-size: 9pt;
     color: #555;
+  }
+  .pcard__path::before {
+    content: " \00b7  ";
+  }
+  .view__head,
+  .xp-col__title,
+  .xp-org__head,
+  .ov-label {
+    break-after: avoid;
+  }
+  .xp-org {
+    break-inside: auto !important;
+  }
+  .tl__item {
+    break-inside: avoid;
   }
   .xp-col + .xp-col {
     margin-top: 8pt;
@@ -3816,3 +3851,10 @@ html:has(.home-sheet[open]) {
   }
 }
 
+
+/* Desktop with a mouse: slightly tighter rail rows so the rail fits a 800px-tall window. */
+@media screen and (min-width: 1024px) and (pointer: fine) {
+  .home-railnav__list a {
+    height: 40px;
+  }
+}

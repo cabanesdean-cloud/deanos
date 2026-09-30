@@ -138,13 +138,13 @@ export function HomeApp() {
       </a>
 
       {/* Phone + tablet bar. Tablet: tabs. Phone: the corner menu. */}
-      <div className={"home-bar" + (titled ? " is-titled" : "")}>
+      <nav className={"home-bar" + (titled ? " is-titled" : "")} aria-label="Site">
         <ViewLink className="home-bar__name" view="overview" navigate={navigate} tabIndex={titled ? undefined : -1} aria-hidden={titled ? undefined : true}>
           {PERSON.name}
         </ViewLink>
-        <nav className="home-tabs" aria-label="Sections">
+        <div className="home-tabs">
           <SectionList className="home-tabs__list" view={view} navigate={navigate} />
-        </nav>
+        </div>
         <div className="home-bar__actions">
           <ThemeToggle />
           <button
@@ -160,7 +160,7 @@ export function HomeApp() {
             Menu
           </button>
         </div>
-      </div>
+      </nav>
 
       <dialog
         ref={menu}
