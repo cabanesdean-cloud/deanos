@@ -98,10 +98,10 @@ export const WORK = {
       title: "Assistant Director of Marketing",
       dates: "September 2025 \u2013 Present",
       current: true,
-      figures: ["1.34M total views", "250K+ views on one post", "1,000+ shares", "~200% engagement growth"],
+      figures: ["1.34M total views", "250K+ views on one post", "~200% engagement growth"],
       bullets: [
         "Manage Instagram and Facebook content end to end, including photography, video, product launches and event promotion; continue supporting the business remotely while attending college.",
-        "Generated 1.34M total views, including 250K+ on one post, and 1,000+ shares; grew engagement approximately 200% and promoted Nike SB releases that consistently sold out.",
+        "Generated 1.34M total views, including 250K+ on one post; grew engagement approximately 200% and promoted Nike SB releases that consistently sold out.",
       ],
     },
     {
