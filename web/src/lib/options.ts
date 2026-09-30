@@ -12,6 +12,7 @@ export const OPTION_SECTIONS = [
   { id: "american", label: "Early exercise", method: "options-binomial" },
   { id: "implied-vol", label: "Implied volatility", method: "options-implied-vol" },
   { id: "asian", label: "Asian option", method: "options-monte-carlo" },
+  { id: "barrier", label: "Barrier option", method: "options-monte-carlo" },
 ] as const;
 
 export type OptionSectionId = (typeof OPTION_SECTIONS)[number]["id"];
@@ -240,4 +241,61 @@ export type OptionsValidation = {
   };
   binomial: { inputs: Record<string, number | string>; black_scholes: number; rows: { steps: number; price: number; error: number }[] };
   implied_vol: { cases: number; skipped_at_bounds: number; max_abs_error: number };
+  /** Added with barrier options; optional so an older engine response still renders. */
+  barrier?: {
+    inputs: Record<string, number>;
+    paths: number;
+    bridge_steps: number;
+    rows: {
+      kind: OptionType;
+      barrier_type: BarrierType;
+      barrier: number;
+      closed_form: number;
+      bridge: number;
+      bridge_std_error: number;
+      bridge_within_ci: boolean;
+      discrete: Record<string, { monte_carlo: number; std_error: number; bgk: number }>;
+      european: number;
+    }[];
+  };
+  ticker_example?: TickerExample | null;
+};
+
+export type TickerExample = {
+  ticker: string;
+  as_of: string;
+  vol_window: string;
+  inputs: { s: number; k: number; t: number; r: number; q: number; sigma: number; kind: OptionType };
+  paths: number;
+  seed: number;
+  black_scholes: number;
+  rows: {
+    estimator: "plain" | "antithetic" | "antithetic_control";
+    price: number;
+    std_error: number;
+    ci95: [number, number];
+    difference: number;
+    difference_pct: number | null;
+    z: number | null;
+    within_ci: boolean;
+  }[];
+};
+
+export type BarrierType = "up-and-out" | "up-and-in" | "down-and-out" | "down-and-in";
+
+export type BarrierResult = {
+  estimate: Estimate;
+  plain_std_error: number;
+  variance_reduction: number | null;
+  barrier: number;
+  barrier_type: BarrierType;
+  monitoring_dates: number;
+  breached_at_start: boolean;
+  hit_share: number;
+  continuous_closed_form: number;
+  discrete_bgk: number;
+  european_black_scholes: number;
+  convergence: { paths: number[]; controlled: number[]; controlled_se: number[] };
+  seed: number;
+  compute_seconds: number;
 };

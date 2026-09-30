@@ -8,7 +8,7 @@ import { SectionSkeleton } from "@/components/ui/States";
 import { OPTIONS_PROJECT, SITE } from "@/lib/site";
 
 const DESCRIPTION =
-  "Price European, American and Asian options with Black-Scholes-Merton, Monte Carlo simulation and binomial trees, and see where the models agree. Greeks, implied volatility and convergence shown with their uncertainty.";
+  "Price European, American, Asian and barrier options with Black-Scholes-Merton, Monte Carlo simulation and binomial trees, and see where the models agree. Greeks, implied volatility and convergence shown with their uncertainty.";
 
 export const metadata: Metadata = {
   title: OPTIONS_PROJECT.name,
@@ -43,7 +43,7 @@ export default function OptionsPage() {
           <h1>{OPTIONS_PROJECT.name}</h1>
           <p>
             Price one option four ways: the Black-Scholes formula, Monte Carlo simulation and a binomial tree, then see
-            where they agree, what early exercise is worth, and why simulation is needed when there is no formula.{" "}
+            where they agree, what early exercise is worth, and why simulation is needed for Asian and barrier options, which depend on the whole price path.{" "}
             <Link href="/deanos/methodology#options">How the models work</Link>. An educational tool, not investment advice.
           </p>
         </header>

@@ -3,7 +3,106 @@
 import { Notice, Skeleton } from "@/components/ui/States";
 import { apiUrl, useApi } from "@/lib/api";
 import { int, num, pct } from "@/lib/format";
-import { money, type OptionsValidation, type TextbookRow } from "@/lib/options";
+import { money, type OptionsValidation, type TextbookRow, type TickerExample } from "@/lib/options";
+
+const ESTIMATOR: Record<TickerExample["rows"][number]["estimator"], string> = {
+  plain: "Plain",
+  antithetic: "Antithetic",
+  antithetic_control: "Antithetic + control variate",
+};
+
+function TickerExampleTable({ ex }: { ex: TickerExample }) {
+  const i = ex.inputs;
+  return (
+    <div className="table-wrap" tabIndex={0} style={{ marginTop: 24 }}>
+      <h3 className="h3" id="nvda-example">
+        A real example: {ex.ticker}
+      </h3>
+      <p className="small">
+        A three-month at-the-money {i.kind} on {ex.ticker}: spot {money(i.s)} (close on {ex.as_of}), strike {money(i.k)},
+        volatility {pct(i.sigma, 1)} ({ex.vol_window}), r={pct(i.r, 0)}, no dividend. One run of {int(ex.paths)} paths
+        (seed {ex.seed}) against the exact Black-Scholes price of {money(ex.black_scholes)}. The numbers move with each
+        night&apos;s data.
+      </p>
+      <table className="table">
+        <thead>
+          <tr>
+            <th className="left">Estimator</th>
+            <th>Price</th>
+            <th>Std. error</th>
+            <th>Difference</th>
+            <th>In 95% interval</th>
+          </tr>
+        </thead>
+        <tbody>
+          {ex.rows.map((r) => (
+            <tr key={r.estimator}>
+              <td className="left">{ESTIMATOR[r.estimator]}</td>
+              <td>{num(r.price, 4)}</td>
+              <td>{num(r.std_error, 4)}</td>
+              <td>{r.difference_pct != null ? (r.difference_pct >= 0 ? "+" : "−") + num(Math.abs(r.difference_pct), 3) + "%" : "n/a"}</td>
+              <td>{r.within_ci ? "Yes" : "No"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="xsmall muted" style={{ marginTop: 8 }}>
+        A single run&apos;s difference is sampling noise of about the size of its standard error, so it changes with the
+        seed and the day&apos;s data; the coverage test above is the stronger check. My résumé quotes a 0.16% difference
+        from an earlier run of the same kind of test.
+      </p>
+    </div>
+  );
+}
+
+function BarrierTable({ b }: { b: NonNullable<OptionsValidation["barrier"]> }) {
+  const i = b.inputs;
+  return (
+    <div className="table-wrap" tabIndex={0} style={{ marginTop: 24 }}>
+      <h3 className="h3">Barrier options</h3>
+      <p className="small">
+        S=K={String(i.s)}, T={String(i.t)}, r={pct(i.r, 0)}, q={pct(i.q, 0)}, σ={pct(i.sigma, 0)}. The continuous
+        closed form is checked against an independent simulation that uses the exact Brownian-bridge crossing
+        probability ({int(b.paths)} paths, {b.bridge_steps} steps). The discrete columns show the Monte Carlo price of the
+        contract checked on 12, 52 or 252 dates, with the BGK approximation in brackets.
+      </p>
+      <table className="table">
+        <thead>
+          <tr>
+            <th className="left">Option</th>
+            <th>Closed form (continuous)</th>
+            <th>Bridge simulation</th>
+            <th>12 dates</th>
+            <th>52 dates</th>
+            <th>252 dates</th>
+          </tr>
+        </thead>
+        <tbody>
+          {b.rows.map((r) => (
+            <tr key={r.kind + r.barrier_type}>
+              <td className="left">
+                {r.barrier_type} {r.kind}, H={String(r.barrier)}
+              </td>
+              <td>{num(r.closed_form, 4)}</td>
+              <td className={r.bridge_within_ci ? "" : "neg"}>
+                {num(r.bridge, 4)} ± {num(1.96 * r.bridge_std_error, 4)}
+              </td>
+              {["12", "52", "252"].map((n) => (
+                <td key={n}>
+                  {num(r.discrete[n].monte_carlo, 3)} ({num(r.discrete[n].bgk, 3)})
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="xsmall muted" style={{ marginTop: 8 }}>
+        As monitoring gets more frequent the discrete price moves toward the continuous formula, slowly (roughly like
+        1/√n), which is why the formula alone misprices a barrier that is only checked at closes.
+      </p>
+    </div>
+  );
+}
 
 type Kind = "options-bs" | "options-mc" | "options-binomial" | "options-iv";
 
@@ -95,6 +194,8 @@ export function OptionsValidationTable({ kind }: { kind: Kind }) {
             </tr>
           </tbody>
         </table>
+        {d.ticker_example && <TickerExampleTable ex={d.ticker_example} />}
+        {d.barrier && <BarrierTable b={d.barrier} />}
       </div>
     );
   }

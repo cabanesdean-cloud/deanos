@@ -17,13 +17,14 @@ import {
 import { InputsPanel } from "./InputsPanel";
 import { AmericanSection } from "./sections/American";
 import { AsianSection } from "./sections/Asian";
+import { BarrierSection } from "./sections/Barrier";
 import { GreeksSection } from "./sections/Greeks";
 import { ImpliedVolSection } from "./sections/ImpliedVol";
 import { MonteCarloSection } from "./sections/MonteCarlo";
 import { PriceSection } from "./sections/Price";
 
 /** Section-specific settings kept in the address alongside the inputs. */
-const EXTRA_KEYS = ["n", "avg", "mp"] as const;
+const EXTRA_KEYS = ["n", "avg", "mp", "bt", "bh", "mon"] as const;
 type ExtraKey = (typeof EXTRA_KEYS)[number];
 
 export type OptionSectionProps = {
@@ -39,6 +40,7 @@ const RENDER: Record<OptionSectionId, (p: OptionSectionProps) => React.ReactNode
   american: (p) => <AmericanSection {...p} />,
   "implied-vol": (p) => <ImpliedVolSection {...p} />,
   asian: (p) => <AsianSection {...p} />,
+  barrier: (p) => <BarrierSection {...p} />,
 };
 
 export function OptionsExplorer() {

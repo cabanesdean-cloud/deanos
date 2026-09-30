@@ -712,7 +712,7 @@ Theta (call) = −S·e^(−qT)·φ(d1)·σ / (2√T) − r·K·e^(−rT)·N(d2) 
     group: "options",
     title: "Monte Carlo option pricing",
     short: "Monte Carlo",
-    summary: "Pricing by simulation, with antithetic variates and control variates to cut the error, and why it matters for path-dependent options.",
+    summary: "Pricing by simulation, with antithetic variates and control variates to cut the error, and why it matters for path-dependent options such as Asian and barrier options.",
     what: (
       <>
         <p>
@@ -732,6 +732,15 @@ Theta (call) = −S·e^(−qT)·φ(d1)·σ / (2√T) − r·K·e^(−rT)·N(d2) 
           are simulated. There is no closed-form price for an arithmetic average. A geometric average does have one,
           and it moves almost in lockstep with the arithmetic one, so it serves as the control variate.
         </p>
+        <p>
+          A <b>barrier option</b> is switched off (knock-out) or on (knock-in) if the price reaches a level H before
+          expiry: up-and-out, up-and-in, down-and-out and down-and-in. Real contracts usually check the barrier at
+          set times, such as each close, and that is what the simulation prices: the path is simulated exactly on the
+          monitoring dates and checked only there. A closed-form price exists for a barrier watched continuously
+          (Merton; Reiner and Rubinstein). A path can cross between two checks and come back unseen, so a
+          discretely checked knock-out is worth more than that formula and a knock-in less. Knock-in plus knock-out
+          always equals the European option.
+        </p>
       </>
     ),
     why: (
@@ -745,6 +754,7 @@ Theta (call) = −S·e^(−qT)·φ(d1)·σ / (2√T) − r·K·e^(−rT)·N(d2) 
       "The same inputs as Black-Scholes-Merton.",
       "Number of paths: 5,000, 20,000 or 100,000 on the page (up to 200,000 through the API).",
       "For the Asian option: the averaging dates (weekly, monthly or daily over the option's life).",
+    "For the barrier option: the type, the level (as a percentage of spot) and how often it is checked (weekly, monthly or daily).",
       "A fixed random seed (42), so identical inputs always give identical numbers.",
     ],
     formula: `S_T = S·exp[(r − q − σ²/2)·T + σ·√T·Z],   Z ~ N(0, 1)
@@ -753,12 +763,16 @@ Antithetic:  pair payoff(Z) with payoff(−Z) and average each pair
 Control:     Ŷ = Ȳ − b·(X̄ − E[X]),  X = e^(−rT)·S_T,  E[X] = S·e^(−qT),  b = cov(Y, X) / var(X)
 95% interval = estimate ± 1.96 · SE
 Variance reduction = SE(plain)² / SE(reduced)²   (how many times more plain paths the same precision needs)
-Asian call payoff = max(mean(S_t1, …, S_tn) − K, 0);   control: geometric average (closed form)`,
+Asian call payoff = max(mean(S_t1, …, S_tn) − K, 0);   control: geometric average (closed form)
+Up-and-out call payoff = max(S_T − K, 0) if S_ti < H at every monitoring date t_i, else 0
+Knock-in + knock-out = European (path by path)
+Discrete ≈ continuous with H moved to H·e^(±0.5826·σ·√(T/n))   (Broadie, Glasserman and Kou; + up, − down)`,
     assumptions: [
       "Geometric Brownian motion under the risk-neutral measure, as in Black-Scholes-Merton. For a European payoff the terminal price is drawn exactly, so no time steps are needed.",
       "The control-variate coefficient b is estimated from the same simulated paths. This adds a bias of order 1/n, negligible at the path counts used.",
       "The 95% interval uses the normal approximation to the sampling distribution of the mean.",
       "Asian options are European-style (settled at expiry) and averaged over equally spaced dates ending at expiry.",
+      "Barrier options are European-style with no rebate, checked on equally spaced dates ending at expiry; a spot already beyond the barrier counts as hit.",
       "Random numbers come from NumPy's PCG64 generator.",
     ],
     reading: (
@@ -773,19 +787,23 @@ Asian call payoff = max(mean(S_t1, …, S_tn) − K, 0);   control: geometric av
       "Convergence is slow: halving the error takes four times the paths.",
       "American options are not priced by simulation here; that needs a regression method such as Longstaff-Schwartz. The binomial tree handles them.",
       "Averaging is discrete, on the stated dates. A continuously averaged option would be slightly cheaper.",
+      "The BGK correction for barriers is an approximation that degrades when the barrier is very close to the spot; the simulation is the reference for the discrete contract.",
       "Every simulation inherits the lognormal, constant-volatility assumptions of the underlying model.",
     ],
     failures: [
       "For deep out-of-the-money options almost every path pays zero, so a few paths carry the estimate and the standard error itself is noisy. The interval can then cover the true price less often than 95%.",
       "With very few paths the normal approximation behind the interval is poor.",
+      "A knock-out with the barrier close to the spot pays on few paths, so its relative error is large, and antithetic draws reduce variance little for barrier payoffs.",
     ],
     validation: "options-mc",
     validationIntro:
-      "How often the 95% interval contains the exact Black-Scholes price, over many independent runs with different seeds, recomputed by the running engine.",
+      "How often the 95% interval contains the exact Black-Scholes price over many independent runs with different seeds, one 100,000-path run on a real stock, and barrier prices against their formulas. All recomputed by the running engine.",
     references: [
       "Boyle, P. (1977). Options: a Monte Carlo approach. Journal of Financial Economics 4(3).",
       "Glasserman, P. (2003). Monte Carlo Methods in Financial Engineering. Springer (chapter 4, variance reduction).",
       "Kemna, A. and Vorst, A. (1990). A pricing method for options based on average asset values. Journal of Banking and Finance 14(1).",
+      "Reiner, E. and Rubinstein, M. (1991). Breaking down the barriers. Risk 4(8).",
+      "Broadie, M., Glasserman, P. and Kou, S. (1997). A continuity correction for discrete barrier options. Mathematical Finance 7(4).",
     ],
   },
   {
