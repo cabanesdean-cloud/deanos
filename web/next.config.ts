@@ -34,23 +34,34 @@ const SECURITY_HEADERS = [
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
 ];
 
+// The tools used to live under /deanos/*. Their canonical addresses are now
+// short (deancabanes.com/beta, /options, /transactions); the old URLs redirect
+// permanently (308), keeping the query string, so shared links and deep links
+// with URL state still land on the same view.
+const MOVED = ["beta", "options", "transactions"] as const;
+
 const nextConfig: NextConfig = {
-  basePath: "/deanos",
+  // No basePath: the résumé homepage is the domain root and each tool has its
+  // own top-level address. DeanOS itself stays at /deanos (a route segment), and
+  // Vercel Services sends /deanos/api/* to the Python engine before Next.js.
   poweredByHeader: false,
   typedRoutes: true,
   async headers() {
+    return [{ source: "/:path*", headers: SECURITY_HEADERS }];
+  },
+  async redirects() {
     return [
-      { source: "/:path*", headers: SECURITY_HEADERS },
-      { source: "/", headers: SECURITY_HEADERS, basePath: false as const },
+      ...MOVED.flatMap((m) => [
+        { source: `/deanos/${m}`, destination: `/${m}`, permanent: true },
+        { source: `/deanos/${m}/:path*`, destination: `/${m}/:path*`, permanent: true },
+      ]),
+      // The old internal route behind the root rewrite.
+      { source: "/deanos/home", destination: "/", permanent: true },
     ];
   },
   async rewrites() {
-    // The personal overview at the domain root is served by src/proxy.ts: Next.js
-    // does not allow config rewrites to leave the base path.
-    const engine = proxyEngine
-      ? [{ source: "/deanos/api/:path*", destination: `${ENGINE_DEV_URL}/deanos/api/:path*`, basePath: false as const }]
-      : [];
-    return engine;
+    // Local engine only; on Vercel the Services router handles /deanos/api/*.
+    return proxyEngine ? [{ source: "/deanos/api/:path*", destination: `${ENGINE_DEV_URL}/deanos/api/:path*` }] : [];
   },
 };
 

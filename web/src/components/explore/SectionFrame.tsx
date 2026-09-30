@@ -50,7 +50,7 @@ export function SectionFrame({
       </header>
       {children}
       <footer className="section__method">
-        <Link href={`/methodology/${method}`}>How this is calculated: {methodLabel}</Link>
+        <Link href={`/deanos/methodology/${method}`}>How this is calculated: {methodLabel}</Link>
         {quality && (
           <span>
             Data {date(quality.start)} to {date(quality.end)}, {quality.rebalancing} rebalancing

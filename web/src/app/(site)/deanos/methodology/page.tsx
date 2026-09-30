@@ -2,14 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { groupOf, METHOD_GROUPS, METHODS } from "@/content/methodology";
+import { RebuildNote } from "@/components/site/RebuildNote";
 import { OG_IMAGE } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Methodology",
   description:
     "How each DeanOS, Options Pricing and Transaction ML model works: what it does, why it is used, its assumptions, how to read it, and where it fails.",
-  alternates: { canonical: "/methodology" },
-  openGraph: { title: "Methodology · DeanOS", description: "How each DeanOS model works, what it assumes, and where it fails.", url: "/methodology", images: [OG_IMAGE] },
+  alternates: { canonical: "/deanos/methodology" },
+  openGraph: { title: "Methodology · DeanOS", description: "How each DeanOS model works, what it assumes, and where it fails.", url: "/deanos/methodology", images: [OG_IMAGE] },
 };
 
 export default function MethodologyIndex() {
@@ -21,6 +22,7 @@ export default function MethodologyIndex() {
           What each model does, why it is here, what it assumes, and where it breaks. Every page ends with results
           recomputed from the current data, so the claims can be checked.
         </p>
+        <RebuildNote />
       </header>
       {METHOD_GROUPS.map((g) => (
         <section key={g.id} id={g.id} className="method-group" aria-labelledby={`group-${g.id}`}>
@@ -28,7 +30,7 @@ export default function MethodologyIndex() {
           <p>{g.blurb}</p>
           <nav className="method-index" aria-label={`${g.title} models`}>
             {METHODS.filter((m) => groupOf(m) === g.id).map((m) => (
-              <Link key={m.slug} href={`/methodology/${m.slug}` as never}>
+              <Link key={m.slug} href={`/deanos/methodology/${m.slug}` as never}>
                 <h3>{m.title}</h3>
                 <p className="muted">{m.summary}</p>
               </Link>

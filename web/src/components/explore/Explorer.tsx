@@ -57,7 +57,7 @@ export function Explorer() {
       const s = next.s ?? section;
       if (s !== "overview") q.set("s", s);
       if (next.edit) q.set("edit", "1");
-      return `/explore?${q.toString()}`;
+      return `/deanos/explore?${q.toString()}`;
     },
     [canonical, section],
   );
@@ -95,7 +95,7 @@ export function Explorer() {
               A historical crash
             </Link>
             {compareWith && (
-              <Link className="chip" href={`/explore?p=${encodeURIComponent(canonical)}&s=compare&b=${encodeURIComponent(compareWith.p)}` as never} scroll={false}>
+              <Link className="chip" href={`/deanos/explore?p=${encodeURIComponent(canonical)}&s=compare&b=${encodeURIComponent(compareWith.p)}` as never} scroll={false}>
                 Compare with {compareWith.name}
               </Link>
             )}

@@ -1,20 +1,17 @@
 import Link from "next/link";
-
 import { contactLinks, SITE } from "@/lib/site";
 
 export function SiteFooter() {
-  const contacts = contactLinks();
+  const contacts = contactLinks({ resume: false });
   return (
     <footer className="site-footer">
       <div className="container site-footer__row">
         <p style={{ maxWidth: "62ch" }}>
-          Educational and analytical projects by {SITE.owner}. Results describe historical data and model assumptions.
+          Educational projects by <Link href="/">{SITE.owner}</Link>. Results describe historical data and model assumptions.
           They are not investment advice or predictions.
         </p>
         <div className="site-footer__links">
-          {SITE.homeUrl && <a href={SITE.homeUrl}>Overview</a>}
-          <Link href="/methodology">Methodology</Link>
-          <Link href="/about">About</Link>
+          <Link href="/">Dean Cabanes</Link>
           {contacts.map((c) => (
             <a key={c.id} href={c.href}>
               {c.label}

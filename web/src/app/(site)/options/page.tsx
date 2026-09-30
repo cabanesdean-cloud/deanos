@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { OptionsExplorer } from "@/components/options/OptionsExplorer";
 import { JsonLd } from "@/components/site/JsonLd";
 import { SectionSkeleton } from "@/components/ui/States";
-import { OPTIONS_PROJECT, SITE, SITE_URL } from "@/lib/site";
+import { OPTIONS_PROJECT, SITE } from "@/lib/site";
 
 const DESCRIPTION =
   "Price European, American and Asian options with Black-Scholes-Merton, Monte Carlo simulation and binomial trees, and see where the models agree. Greeks, implied volatility and convergence shown with their uncertainty.";
@@ -30,7 +30,7 @@ export default function OptionsPage() {
           "@type": "WebApplication",
           name: OPTIONS_PROJECT.name,
           alternateName: OPTIONS_PROJECT.tagline,
-          url: SITE_URL + "/options",
+          url: SITE.origin + "/options",
           applicationCategory: "FinanceApplication",
           operatingSystem: "Any (web browser)",
           isAccessibleForFree: true,
@@ -44,10 +44,11 @@ export default function OptionsPage() {
           <p>
             Price one option four ways: the Black-Scholes formula, Monte Carlo simulation and a binomial tree, then see
             where they agree, what early exercise is worth, and why simulation is needed when there is no formula.{" "}
-            <Link href="/methodology#options">How the models work</Link>. An educational tool, not investment advice.
+            <Link href="/deanos/methodology#options">How the models work</Link>. An educational tool, not investment advice.
           </p>
         </header>
       </div>
+      <div id="explorer" className="anchor-target">
       <Suspense
         fallback={
           <div className="container" style={{ paddingTop: 32 }}>
@@ -57,6 +58,7 @@ export default function OptionsPage() {
       >
         <OptionsExplorer />
       </Suspense>
+      </div>
     </>
   );
 }

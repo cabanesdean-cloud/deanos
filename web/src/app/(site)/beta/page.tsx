@@ -35,9 +35,11 @@ export default function BetaPage() {
         </p>
       </header>
 
-      <Suspense fallback={<Skeleton height={420} />}>
-        <BetaTracker />
-      </Suspense>
+      <div id="tracker" className="anchor-target">
+        <Suspense fallback={<Skeleton height={420} />}>
+          <BetaTracker />
+        </Suspense>
+      </div>
 
       <section className="three-up beta-about" aria-label="About the tracker">
         <div>
@@ -54,7 +56,7 @@ export default function BetaPage() {
           <p className="muted">
             Estimates change with the window, extreme moves are rare, and a few outliers can bend the curve. A better
             in-sample fit is not a better forecast, and association is not causation. Historical sensitivity is not a
-            prediction or a recommendation. The <Link href="/methodology/beta-tracker">methodology</Link> covers each of
+            prediction or a recommendation. The <Link href="/deanos/methodology/beta-tracker">methodology</Link> covers each of
             these.
           </p>
         </div>
@@ -64,7 +66,7 @@ export default function BetaPage() {
             This was the first thing I built, and it is still my favorite. The original was a standalone web app; this
             version keeps its method (the straight line, the quadratic fit and its slope, the six percentile buckets and
             the volatility split) and runs it on the same nightly price data as{" "}
-            <Link href="/">DeanOS</Link>. The <Link href="/methodology/beta-tracker">methodology page</Link> lists what
+            <Link href="/deanos">DeanOS</Link>. The <Link href="/deanos/methodology/beta-tracker">methodology page</Link> lists what
             was kept and what was corrected
             {SITE.githubUrl ? (
               <>
@@ -79,7 +81,7 @@ export default function BetaPage() {
       <section className="prose beta-relation">
         <h2 className="h3">How it relates to DeanOS</h2>
         <p className="muted">
-          DeanOS&apos;s <Link href="/explore">portfolio overview</Link> reports a whole portfolio&apos;s beta to the S&amp;P
+          DeanOS&apos;s <Link href="/deanos/explore">portfolio overview</Link> reports a whole portfolio&apos;s beta to the S&amp;P
           500, with separate slopes on up and down days, from simple daily returns. The tracker looks at one asset at a
           time against a benchmark you choose, with the curve and buckets described above and log returns by default,
           as in the original. The two use the same price data, so for the same asset and window their straight-line

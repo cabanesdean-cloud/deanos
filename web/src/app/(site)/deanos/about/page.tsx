@@ -1,18 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { ContactLinks } from "@/components/site/ContactLinks";
 import { OG_IMAGE, SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: { absolute: "About · Dean Cabanes" },
+  title: { absolute: "About this site · Dean Cabanes" },
   description:
-    "Dean Cabanes, an economics student, on the four projects on this site, how they were built with AI coding assistants, and one example of checking a model and changing it.",
-  alternates: { canonical: "/about" },
+    "How Dean Cabanes built the tools on deancabanes.com: the AI-assisted workflow, what the public DeanOS leaves out of his personal version, and one example of checking a model and changing it.",
+  alternates: { canonical: "/deanos/about" },
   openGraph: {
-    title: "About · Dean Cabanes",
-    description: "Who built these projects, how, and one example of checking a model and changing it.",
-    url: "/about",
+    title: "About this site · Dean Cabanes",
+    description: "How the tools were built, and one example of checking a model and changing it.",
+    url: "/deanos/about",
     images: [OG_IMAGE],
   },
 };
@@ -21,40 +20,24 @@ export default function About() {
   return (
     <div className="container">
       <header className="page-head">
-        <h1>About</h1>
+        <p className="eyebrow">About this site</p>
+        <h1>How it was built</h1>
         <p>
-          I&apos;m {SITE.owner}, an economics student interested in finance, quantitative modeling, data and AI. I build
-          tools to explore financial risk, test models and understand their limitations.
+          The tools on this site are projects I built to understand the models I kept reading about. This page covers
+          how I work, how the public DeanOS differs from the version I use myself, and one example of finding a problem
+          in a model and fixing it. My background is on the <Link href="/">home page</Link>.
         </p>
-        <ContactLinks />
       </header>
       <div className="prose">
-        <h2>What I build</h2>
+        <h2 id="public-rebuild">A public rebuild of a personal system</h2>
         <p>
-          I wanted to understand the models I kept reading about: how a GARCH model decides volatility is rising, what a
-          hidden Markov model means by a &quot;regime&quot;, why Value at Risk is both everywhere and constantly
-          criticized. Reading about them only went so far, so I built them, tested them against known results, and kept
-          finding out where their assumptions break.
+          <Link href="/deanos">DeanOS</Link> on this site is a public rebuild of a system I built for my own portfolio.
+          The personal version also includes a Telegram-based agent for natural-language questions and live broker
+          data; both are left out here for privacy. Rebuilding it in public meant rechecking every model, and some were
+          revised along the way, as the example below shows. The other tools (the{" "}
+          <Link href="/beta">Nonlinear Beta Tracker</Link>, <Link href="/options">Options Pricing</Link> and the{" "}
+          <Link href="/transactions">Transaction ML</Link> side project) run on the same engine and data.
         </p>
-        <ul>
-          <li>
-            <Link href="/beta">Nonlinear Beta Tracker</Link>: my first project, and still my favorite. It asks whether
-            a stock reacts to the market the same way on sharp down days as on sharp up days, using a straight-line
-            beta, a curved fit and betas within slices of the data.
-          </li>
-          <li>
-            <Link href="/">DeanOS</Link>: a portfolio risk and modeling engine. Eight analyses of one portfolio, from
-            Value at Risk with backtests to simulated outcomes, market regimes and historical crashes.
-          </li>
-          <li>
-            <Link href="/options">Options Pricing</Link>: three pricing methods on the same option, with their errors
-            and where early exercise matters.
-          </li>
-          <li>
-            <Link href="/transactions">Transaction ML</Link>: a small, explainable categorizer for bank transactions,
-            evaluated on merchants it has never seen.
-          </li>
-        </ul>
         <p>
           None of this is a trading system, and I am not a professional quantitative researcher. The tools describe
           historical data under stated assumptions.
@@ -68,7 +51,7 @@ export default function About() {
           anything that did not hold up, and deciding what to change.
         </p>
 
-        <h2>One example: a Value at Risk that was not what it said</h2>
+        <h2 id="judgment">One example: a Value at Risk that was not what it said</h2>
         <p>
           DeanOS began as a personal tool. Its Value at Risk offered three methods, one of them labeled Monte Carlo.
           Rechecking it for the public version showed that the &quot;Monte Carlo&quot; method drew returns from a
@@ -89,7 +72,7 @@ export default function About() {
         </p>
         <p>
           The limits remain: the backtest covers one history, the estimate is for a single day, and the GARCH model has
-          assumptions of its own. The <Link href="/methodology/value-at-risk">Value at Risk methodology</Link> lists them. The
+          assumptions of its own. The <Link href="/deanos/methodology/value-at-risk">Value at Risk methodology</Link> lists them. The
           same review found two other problems (a volatility forecast labeled as an average that was a single day, and a
           regime model whose fixed random seed landed on a clearly worse fit); each methodology page lists what changed
           and why.

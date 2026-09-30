@@ -14,19 +14,19 @@ export function generateStaticParams() {
 
 export const dynamicParams = false;
 
-export async function generateMetadata(props: PageProps<"/methodology/[slug]">): Promise<Metadata> {
+export async function generateMetadata(props: PageProps<"/deanos/methodology/[slug]">): Promise<Metadata> {
   const { slug } = await props.params;
   const m = getMethod(slug);
   if (!m) return {};
   return {
     title: m.title,
     description: m.summary,
-    alternates: { canonical: `/methodology/${m.slug}` },
+    alternates: { canonical: `/deanos/methodology/${m.slug}` },
     openGraph: {
       type: "article",
       title: `${m.title} · ${groupOf(m) === "beta" ? BETA_PROJECT.name : groupOf(m) === "options" ? OPTIONS_PROJECT.name : groupOf(m) === "transactions" ? TX_PROJECT.name : SITE.name}`,
       description: m.summary,
-      url: `/methodology/${m.slug}`,
+      url: `/deanos/methodology/${m.slug}`,
     },
   };
 }
@@ -41,20 +41,20 @@ function List({ items }: { items: React.ReactNode[] }) {
   );
 }
 
-export default async function MethodPage(props: PageProps<"/methodology/[slug]">) {
+export default async function MethodPage(props: PageProps<"/deanos/methodology/[slug]">) {
   const { slug } = await props.params;
   const m = getMethod(slug);
   if (!m) notFound();
 
-  const url = `${SITE.origin}${SITE.basePath}/methodology/${m.slug}`;
+  const url = `${SITE.origin}/deanos/methodology/${m.slug}`;
   const group = groupOf(m);
   const app =
     group === "beta"
-      ? { name: BETA_PROJECT.name, url: `${SITE.origin}${SITE.basePath}${BETA_PROJECT.href}` }
+      ? { name: BETA_PROJECT.name, url: `${SITE.origin}${BETA_PROJECT.href}` }
       : group === "options"
-      ? { name: OPTIONS_PROJECT.name, url: `${SITE.origin}${SITE.basePath}${OPTIONS_PROJECT.href}` }
+      ? { name: OPTIONS_PROJECT.name, url: `${SITE.origin}${OPTIONS_PROJECT.href}` }
       : group === "transactions"
-        ? { name: TX_PROJECT.name, url: `${SITE.origin}${SITE.basePath}${TX_PROJECT.href}` }
+        ? { name: TX_PROJECT.name, url: `${SITE.origin}${TX_PROJECT.href}` }
         : { name: SITE.name, url: `${SITE.origin}${SITE.basePath}` };
   return (
     <div className="container">
@@ -73,11 +73,11 @@ export default async function MethodPage(props: PageProps<"/methodology/[slug]">
       />
       <div className="method-layout" style={{ paddingTop: 48 }}>
         <nav className="method-nav" aria-label="Models">
-          <Link href="/methodology" className="small">
+          <Link href="/deanos/methodology" className="small">
             All models
           </Link>
           {METHODS.filter((x) => groupOf(x) === group).map((x) => (
-            <Link key={x.slug} href={`/methodology/${x.slug}` as never} aria-current={x.slug === m.slug ? "page" : undefined}>
+            <Link key={x.slug} href={`/deanos/methodology/${x.slug}` as never} aria-current={x.slug === m.slug ? "page" : undefined}>
               {x.short}
             </Link>
           ))}
@@ -144,7 +144,7 @@ export default async function MethodPage(props: PageProps<"/methodology/[slug]">
             ) : group === "transactions" ? (
               <Link href="/transactions">Try it in the categorizer</Link>
             ) : (
-              <Link href="/explore">See it on a portfolio</Link>
+              <Link href="/deanos/explore">See it on a portfolio</Link>
             )}
           </p>
         </article>

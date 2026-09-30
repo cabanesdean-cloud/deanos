@@ -7,7 +7,7 @@ export function ogImage({
   eyebrow,
   title,
   subtitle,
-  footer = "deancabanes.com/deanos · educational project, not investment advice",
+  footer = "deancabanes.com · educational project, not investment advice",
 }: {
   eyebrow: string;
   title: string;

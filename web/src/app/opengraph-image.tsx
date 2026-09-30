@@ -1,13 +1,14 @@
 import { OG_SIZE, ogImage } from "@/lib/og";
 
-export const alt = "DeanOS: Portfolio Risk & Modeling Engine";
+export const alt = "Dean Cabanes: economics student, Santa Barbara City College";
 export const size = OG_SIZE;
 export const contentType = "image/png";
 
 export default function Image() {
   return ogImage({
-    eyebrow: "Dean Cabanes",
-    title: "DeanOS",
-    subtitle: "Portfolio risk and modeling engine: volatility, simulation, regimes, factors and stress tests",
+    eyebrow: "deancabanes.com",
+    title: "Dean Cabanes",
+    subtitle: "Economics student building Python tools for portfolio risk, options pricing and market modeling",
+    footer: "Santa Barbara, CA · Résumé and projects",
   });
 }

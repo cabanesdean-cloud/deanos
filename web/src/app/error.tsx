@@ -18,7 +18,7 @@ export default function RouteError({ error, retry }: { error: Error & { digest?:
           Try again
         </button>
         <Link className="button" href="/">
-          Go to the home page
+          Back to Dean Cabanes
         </Link>
       </div>
     </div>

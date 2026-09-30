@@ -400,7 +400,7 @@ function Results({ d, stale }: { d: BetaResult; stale: boolean }) {
       </details>
 
       <footer className="section__method">
-        <Link href="/methodology/beta-tracker">How this is calculated</Link>
+        <Link href="/deanos/methodology/beta-tracker">How this is calculated</Link>
         <span>
           Adjusted closes (splits and dividends), {dq.return_type} returns, no risk-free adjustment
           {dq.skipped_gaps > 0 ? `, ${plural(dq.skipped_gaps, "gap")} in shared prices skipped, not filled` : ", nothing forward-filled"}

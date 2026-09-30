@@ -23,7 +23,7 @@ export function HeroFan() {
     return (
       <Notice>
         The live example could not load ({res.error.message}). You can still{" "}
-        <Link href="/methodology">read how the models work</Link>.
+        <Link href="/deanos/methodology">read how the models work</Link>.
       </Notice>
     );
   // Sized in CSS (.hero-skeleton) so the server-rendered placeholder is right on phones too.
